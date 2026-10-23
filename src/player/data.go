@@ -16,9 +16,17 @@ type Player struct {
 	Animator Animator
 }
 
-type Animator struct {
-	State         AnimationState
-	Frame         int
-	Elapsed       float32
+type Animation struct {
+	FrameCount    int
 	FrameDuration float32
+	Loop          bool
+}
+
+type Animations map[AnimationState]Animation
+
+type Animator struct {
+	State      AnimationState
+	Frame      int
+	Elapsed    float32
+	Animations Animations
 }

@@ -1,11 +1,25 @@
 package player
 
+// Constants
+var animations = Animations{
+	Idle: Animation{
+		FrameCount:    1,
+		FrameDuration: 0.15,
+		Loop:          true,
+	},
+	Walking: Animation{
+		FrameCount:    2,
+		FrameDuration: 0.15,
+		Loop:          true,
+	},
+}
+
 func NewAnimator() *Animator {
 	a := &Animator{
-		State:         Idle,
-		Frame:         0,
-		Elapsed:       0,
-		FrameDuration: 0.15,
+		State:      Idle,
+		Frame:      0,
+		Elapsed:    0,
+		Animations: animations,
 	}
 	return a
 }
@@ -27,8 +41,12 @@ func (a *Animator) Update(dt float32) {
 	}
 
 	a.Elapsed += dt
-	if a.Elapsed >= a.FrameDuration {
+	if a.Elapsed >= a.Animations[a.State].FrameDuration {
 		a.Frame += 1
-		a.Elapsed -= a.FrameDuration
+		a.Elapsed -= a.Animations[a.State].FrameDuration
+	}
+
+	if a.Animations[a.State].Loop && a.Frame >= a.Animations[a.State].FrameCount {
+		a.Frame = 0
 	}
 }
