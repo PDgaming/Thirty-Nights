@@ -1,5 +1,13 @@
 package world
 
+type CollisionType int
+
+const (
+	CollisionNone CollisionType = iota
+	CollisionTile
+	CollisionObject
+)
+
 type VisualData struct {
 	Type  string `json:"type"`
 	Color string `json:"color"`
@@ -11,10 +19,12 @@ type TileDef struct {
 }
 
 type LayerData struct {
-	ID     string     `json:"id"`
-	Type   string     `json:"type"`
-	ZIndex int        `json:"z_index"`
-	Grid   [][]string `json:"grid"`
+	ID            string        `json:"id"`
+	Type          string        `json:"type"`
+	ZIndex        int           `json:"z_index"`
+	CollisionName string        `json:"collision"`
+	Collision     CollisionType `json:"-"`
+	Grid          [][]string    `json:"grid"`
 }
 
 type Rectangle struct {
@@ -38,6 +48,11 @@ type ObjectData struct {
 	Properties map[string]any `json:"properties"`
 }
 
+type Spawn struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
 type MapData struct {
 	FormatVersion int                   `json:"format_version"`
 	ID            string                `json:"id"`
@@ -50,4 +65,5 @@ type MapData struct {
 	LayersByID    map[string]*LayerData `json:"-"`
 	Rooms         []RoomData            `json:"rooms"`
 	Objects       []ObjectData          `json:"objects"`
+	Spawn         Spawn                 `json:"spawn"`
 }

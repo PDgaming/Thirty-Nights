@@ -20,11 +20,21 @@ func LoadMap(path string) (*MapData, error) {
 		return nil, fmt.Errorf("failed to parse map file: %w", err)
 	}
 
+	for i := range mapData.Layers {
+		mode, err := ParseCollisionType(mapData.Layers[i].CollisionName)
+		if err != nil {
+			return nil, fmt.Errorf("invalid collision type: %w", err)
+		}
+		mapData.Layers[i].Collision = mode
+	}
+
 	// Validate the map data
 	err = ValidateMap(mapData)
 	if err != nil {
 		return nil, fmt.Errorf("invalid map data: %w", err)
 	}
+
+	mapData.BuildLayerIndex()
 
 	return &mapData, nil
 }

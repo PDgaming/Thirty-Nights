@@ -1,4 +1,4 @@
-package render
+package world
 
 import (
 	"fmt"
@@ -8,15 +8,10 @@ import (
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"thirty.nights/src/world"
 )
 
-func (r *Renderer) DrawMap(m *world.MapData) {
-	if m == nil {
-		return
-	}
-
-	layers := make([]world.LayerData, len(m.Layers))
+func DrawMap(m *MapData, debug bool) {
+	layers := make([]LayerData, len(m.Layers))
 	copy(layers, m.Layers)
 
 	sort.Slice(layers, func(i, j int) bool {
@@ -41,6 +36,10 @@ func (r *Renderer) DrawMap(m *world.MapData) {
 				color := HexToRlColor(tileDef.Visual.Color)
 
 				rl.DrawRectangle(int32(pixelX), int32(pixelY), int32(m.TileSize), int32(m.TileSize), color)
+
+				if debug {
+					rl.DrawRectangleLines(int32(pixelX), int32(pixelY), int32(m.TileSize), int32(m.TileSize), rl.Black)
+				}
 			}
 		}
 	}
