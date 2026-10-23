@@ -18,6 +18,44 @@ func New() *Controller {
 	return c
 }
 
+func (c *Controller) ClampToBounds(mapWidth, mapHeight int) {
+	if c.View.Zoom <= 0 {
+		return
+	}
+
+	visibleWidth := float32(rl.GetScreenWidth()) / c.View.Zoom
+	visibleHeight := float32(rl.GetScreenHeight()) / c.View.Zoom
+
+	halfWidth := visibleWidth / 2
+	halfHeight := visibleHeight / 2
+
+	if float32(mapWidth) <= visibleWidth {
+		c.View.Target.X = float32(mapWidth) / 2
+	} else {
+		minX := halfWidth
+		maxX := float32(mapWidth) - halfWidth
+
+		c.View.Target.X = rl.Clamp(
+			c.View.Target.X,
+			minX,
+			maxX,
+		)
+	}
+
+	if float32(mapHeight) <= visibleHeight {
+		c.View.Target.Y = float32(mapHeight) / 2
+	} else {
+		minY := halfHeight
+		maxY := float32(mapHeight) - halfHeight
+
+		c.View.Target.Y = rl.Clamp(
+			c.View.Target.Y,
+			minY,
+			maxY,
+		)
+	}
+}
+
 func (c *Controller) UpdateViewport() {
 	c.View.Offset = rl.Vector2{
 		X: float32(rl.GetScreenWidth()) / 2,
