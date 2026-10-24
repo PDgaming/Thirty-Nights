@@ -45,25 +45,7 @@ func (p *Player) Update(dt float32, m *world.MapData) {
 	hDisplacement := movement.X * p.Speed * dt
 	vDisplacement := movement.Y * p.Speed * dt
 
-	p.Position.X += hDisplacement
-	collisionRect := rl.Rectangle{
-		X:      p.Position.X,
-		Y:      p.Position.Y,
-		Width:  p.Size.X,
-		Height: p.Size.Y,
-	}
-
-	if m.CanCollidRect(collisionRect) {
-		p.Position.X -= hDisplacement
-	}
-
-	p.Position.Y += vDisplacement
-	collisionRect.X = p.Position.X
-	collisionRect.Y = p.Position.Y
-
-	if m.CanCollidRect(collisionRect) {
-		p.Position.Y -= vDisplacement
-	}
+	p.CollisionChecks(hDisplacement, vDisplacement, m)
 }
 
 func (p *Player) Draw(debug bool) {
@@ -81,5 +63,28 @@ func (p *Player) Draw(debug bool) {
 
 	if debug {
 		rl.DrawRectangleLines(int32(p.Position.X), int32(p.Position.Y), int32(p.Size.X), int32(p.Size.Y), rl.Black)
+	}
+}
+
+// Helper functions
+func (p *Player) CollisionChecks(hDisplacement, vDisplacement float32, m *world.MapData) {
+	p.Position.X += hDisplacement
+	collisionRect := rl.Rectangle{
+		X:      p.Position.X,
+		Y:      p.Position.Y,
+		Width:  p.Size.X,
+		Height: p.Size.Y,
+	}
+
+	if m.CanCollidRect(collisionRect) || m.CanCollideObjects(collisionRect) {
+		p.Position.X -= hDisplacement
+	}
+
+	p.Position.Y += vDisplacement
+	collisionRect.X = p.Position.X
+	collisionRect.Y = p.Position.Y
+
+	if m.CanCollidRect(collisionRect) || m.CanCollideObjects(collisionRect) {
+		p.Position.Y -= vDisplacement
 	}
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -24,7 +23,7 @@ func main() {
 	g := game.New(debug)
 	err := g.LoadLevel(level)
 	if err != nil {
-		fmt.Printf("error: %+v\n", err)
+		log.Fatalf("error: %+v", err)
 	}
 
 	for !rl.WindowShouldClose() {

@@ -20,6 +20,10 @@ func New(debug bool) *Game {
 func (g *Game) Update(dt float32) {
 	g.Cam.UpdateViewport()
 
+	for _, obj := range g.Map.ObjectsByID {
+		obj.Update(dt)
+	}
+
 	g.Player.Update(dt, g.Map)
 	g.Player.Animator.Update(dt)
 
@@ -35,6 +39,9 @@ func (g *Game) Update(dt float32) {
 
 func (g *Game) Draw() {
 	world.DrawMap(g.Map, g.Debug)
+	for _, obj := range g.Map.ObjectsByID {
+		obj.Draw(g.Debug)
+	}
 
 	g.Player.Draw(g.Debug)
 }
@@ -48,7 +55,7 @@ func (g *Game) LoadLevel(level int) (err error) {
 	}
 	g.level = level
 
-	mapData, err := world.LoadMap(fmt.Sprintf("asset/maps/deck%d.json", level))
+	mapData, err := world.LoadMap(fmt.Sprintf("asset/maps/%d.json", level))
 	if err != nil {
 		return fmt.Errorf("failed to load map: %w", err)
 	}

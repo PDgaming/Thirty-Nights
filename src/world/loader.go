@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"thirty.nights/src/objects"
 )
 
 func LoadMap(path string) (*MapData, error) {
@@ -35,6 +37,11 @@ func LoadMap(path string) (*MapData, error) {
 	}
 
 	mapData.BuildLayerIndex()
+	mapData.ObjectsByID = make(map[string]ObjectType)
+	err = mapData.BuildObjects()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build objects: %w", err)
+	}
 
 	return &mapData, nil
 }
@@ -46,4 +53,20 @@ func (m *MapData) BuildLayerIndex() {
 	for i := range m.Layers {
 		m.LayersByID[m.Layers[i].ID] = &m.Layers[i]
 	}
+}
+func (m *MapData) BuildObjects() error {
+	for _, object := range m.Objects {
+		switch object.Type {
+		case "door":
+			tileDef, ok := m.TileDefAt(object.Type)
+			if !ok {
+				return fmt.Errorf("failed to find tiledef for door: %s", object.ID)
+			}
+			color := HexToRlColor(tileDef.Visual.Color)
+			m.ObjectsByID[object.ID] = objects.NewDoor(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, color, object.Properties)
+		default:
+			return fmt.Errorf("unknown object type: %s", object.Type)
+		}
+	}
+	return nil
 }

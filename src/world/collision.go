@@ -73,3 +73,21 @@ func (m *MapData) CanCollidRect(rect rl.Rectangle) bool {
 
 	return false
 }
+
+func (m *MapData) CanCollideObjects(rect rl.Rectangle) bool {
+	for _, obj := range m.ObjectsByID {
+		collidable, ok := obj.(Collidable)
+		if !ok {
+			continue
+		}
+
+		if !collidable.Solid() {
+			continue
+		}
+
+		if rl.CheckCollisionRecs(rect, collidable.CollisionRect()) {
+			return true
+		}
+	}
+	return false
+}
