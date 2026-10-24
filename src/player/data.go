@@ -13,6 +13,7 @@ type Player struct {
 	Position rl.Vector2
 	Speed    float32
 	Size     rl.Vector2
+	Facing   rl.Vector2
 	Animator Animator
 }
 

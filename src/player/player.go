@@ -1,6 +1,8 @@
 package player
 
 import (
+	"math"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"thirty.nights/src/world"
 )
@@ -10,6 +12,7 @@ func New(x, y float32) *Player {
 		Position: rl.Vector2{X: x, Y: y},
 		Speed:    100,
 		Size:     rl.Vector2{X: 12, Y: 14},
+		Facing:   rl.Vector2{X: -1, Y: 0},
 		Animator: *NewAnimator(),
 	}
 	return p
@@ -40,6 +43,8 @@ func (p *Player) Update(dt float32, m *world.MapData) {
 		p.Animator.ChangeState(Idle)
 	}
 
+	p.updateFacing(movement)
+
 	movement = rl.Vector2Normalize(movement)
 
 	hDisplacement := movement.X * p.Speed * dt
@@ -63,10 +68,12 @@ func (p *Player) Draw(debug bool) {
 
 	if debug {
 		rl.DrawRectangleLines(int32(p.Position.X), int32(p.Position.Y), int32(p.Size.X), int32(p.Size.Y), rl.Black)
+
+		center := p.Center()
+		rl.DrawLine(int32(center.X), int32(center.Y), int32(center.X+p.Facing.X*10), int32(center.Y+p.Facing.Y*10), rl.Red)
 	}
 }
 
-// Helper functions
 func (p *Player) CollisionChecks(hDisplacement, vDisplacement float32, m *world.MapData) {
 	p.Position.X += hDisplacement
 	collisionRect := rl.Rectangle{
@@ -86,5 +93,43 @@ func (p *Player) CollisionChecks(hDisplacement, vDisplacement float32, m *world.
 
 	if m.CanCollidRect(collisionRect) || m.CanCollideObjects(collisionRect) {
 		p.Position.Y -= vDisplacement
+	}
+}
+
+// Helper functions
+func (p *Player) updateFacing(movement rl.Vector2) {
+	if movement.X == 0 && movement.Y == 0 {
+		return
+	}
+	if math.Abs(float64(movement.X)) == math.Abs(float64(movement.Y)) {
+		return
+	}
+	if math.Abs(float64(movement.X)) > math.Abs(float64(movement.Y)) {
+		if movement.X > 0 {
+			p.Facing = rl.Vector2{X: 1, Y: 0}
+		} else {
+			p.Facing = rl.Vector2{X: -1, Y: 0}
+		}
+	} else {
+		if movement.Y > 0 {
+			p.Facing = rl.Vector2{X: 0, Y: 1}
+		} else {
+			p.Facing = rl.Vector2{X: 0, Y: -1}
+		}
+	}
+}
+func (p *Player) Rect() rl.Rectangle {
+	rect := rl.Rectangle{
+		X:      p.Position.X,
+		Y:      p.Position.Y,
+		Width:  p.Size.X,
+		Height: p.Size.Y,
+	}
+	return rect
+}
+func (p *Player) Center() rl.Vector2 {
+	return rl.Vector2{
+		X: p.Position.X + p.Size.X/2,
+		Y: p.Position.Y + p.Size.Y/2,
 	}
 }
