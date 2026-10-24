@@ -1,3 +1,320 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+:root {
+	color-scheme: dark;
+	--bg: #0b0d10;
+	--panel: #12151a;
+	--panel-raised: #171b21;
+	--panel-hover: #1d2229;
+	--border: #262c34;
+	--border-strong: #353d47;
+	--text: #d8dee7;
+	--text-dim: #8d97a5;
+	--text-faint: #626c79;
+	--accent: #5eead4;
+	--accent-strong: #2dd4bf;
+	--accent-ink: #042f2e;
+	--danger: #f87171;
+	--warn: #fbbf24;
+	--success: #4ade80;
+	font-family:
+		'Inter',
+		ui-sans-serif,
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+	font-size: 13px;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	overflow: hidden;
+	background: var(--bg);
+	color: var(--text);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+::selection {
+	background: rgba(94, 234, 212, 0.25);
+}
+
+/* Thin dark scrollbars for the tool panels. */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: #39414b transparent;
+}
+*::-webkit-scrollbar {
+	width: 9px;
+	height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+	background: #39414b;
+	border: 2px solid transparent;
+	background-clip: padding-box;
+	border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+	background: #4b5563;
+	background-clip: padding-box;
+}
+
+.panel-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--border);
+	color: var(--text-dim);
+	font-size: 10px;
+	font-weight: 650;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+}
+
+.panel-body {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px;
+}
+
+.field-label {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--text-dim);
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.field,
+.field-sm {
+	width: 100%;
+	border: 1px solid var(--border-strong);
+	border-radius: 4px;
+	background: #0d1014;
+	color: var(--text);
+	font-size: 12px;
+	line-height: 1.4;
+	transition:
+		border-color 120ms ease,
+		box-shadow 120ms ease;
+}
+.field {
+	padding: 6px 8px;
+}
+.field-sm {
+	padding: 4px 6px;
+	font-size: 11px;
+}
+.field:focus,
+.field-sm:focus {
+	border-color: var(--accent-strong);
+	box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.25);
+	outline: none;
+}
+.field:disabled,
+.field-sm:disabled {
+	opacity: 0.5;
+}
+select.field,
+select.field-sm {
+	cursor: pointer;
+	background-color: #0d1014;
+}
+
+input[type='number'].field,
+input[type='number'].field-sm {
+	font-variant-numeric: tabular-nums;
+}
+
+input[type='color'] {
+	width: 34px;
+	height: 28px;
+	padding: 2px;
+	border: 1px solid var(--border-strong);
+	border-radius: 4px;
+	background: #0d1014;
+	cursor: pointer;
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	height: 28px;
+	padding: 0 10px;
+	border: 1px solid var(--border-strong);
+	border-radius: 4px;
+	background: var(--panel-raised);
+	color: var(--text);
+	font-size: 11.5px;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background 120ms ease,
+		border-color 120ms ease,
+		color 120ms ease;
+}
+.btn:hover:not(:disabled) {
+	border-color: #48525f;
+	background: var(--panel-hover);
+}
+.btn:disabled {
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+.btn-primary {
+	border-color: var(--accent-strong);
+	background: var(--accent-strong);
+	color: var(--accent-ink);
+}
+.btn-primary:hover:not(:disabled) {
+	border-color: var(--accent);
+	background: var(--accent);
+}
+.btn-danger {
+	border-color: rgba(248, 113, 113, 0.4);
+	color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) {
+	border-color: var(--danger);
+	background: rgba(248, 113, 113, 0.12);
+}
+.btn-icon {
+	width: 28px;
+	padding: 0;
+}
+.btn-xs {
+	height: 22px;
+	padding: 0 7px;
+	font-size: 10.5px;
+}
+
+.tool-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	height: 28px;
+	padding: 0 9px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--text-dim);
+	font-size: 11.5px;
+	font-weight: 600;
+	cursor: pointer;
+}
+.tool-btn:hover {
+	background: var(--panel-hover);
+	color: var(--text);
+}
+.tool-btn.active {
+	border-color: rgba(94, 234, 212, 0.35);
+	background: rgba(94, 234, 212, 0.12);
+	color: var(--accent);
+}
+
+.icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border: 0;
+	border-radius: 3px;
+	background: transparent;
+	color: var(--text-faint);
+	cursor: pointer;
+}
+.icon-btn:hover {
+	background: var(--panel-hover);
+	color: var(--text);
+}
+.icon-btn.active {
+	color: var(--accent);
+}
+
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 1px 5px;
+	border-radius: 3px;
+	background: var(--panel-raised);
+	color: var(--text-faint);
+	font-size: 9.5px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+.badge-accent {
+	background: rgba(94, 234, 212, 0.12);
+	color: var(--accent);
+}
+.badge-danger {
+	background: rgba(248, 113, 113, 0.12);
+	color: var(--danger);
+}
+.badge-warn {
+	background: rgba(251, 191, 36, 0.12);
+	color: var(--warn);
+}
+
+.tab {
+	flex: 1;
+	padding: 9px 8px;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	background: transparent;
+	color: var(--text-faint);
+	font-size: 11px;
+	font-weight: 650;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+}
+.tab:hover {
+	color: var(--text);
+}
+.tab.active {
+	border-bottom-color: var(--accent);
+	color: var(--accent);
+}
+
+.divider {
+	height: 1px;
+	background: var(--border);
+}
+
+.mono {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-variant-numeric: tabular-nums;
+}
+
+.checkerboard {
+	background-image:
+		linear-gradient(45deg, #1a1e24 25%, transparent 25%),
+		linear-gradient(-45deg, #1a1e24 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, #1a1e24 75%),
+		linear-gradient(-45deg, transparent 75%, #1a1e24 75%);
+	background-position:
+		0 0,
+		0 4px,
+		4px -4px,
+		-4px 0;
+	background-size: 8px 8px;
+	background-color: #14171c;
+}
