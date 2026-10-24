@@ -8,7 +8,42 @@ import (
 var hexColorRegex = regexp.MustCompile(`^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$`)
 
 func ValidateMap(m MapData) error {
-	// Validate top-level map properties
+	err := ValidateMapProperties(m)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateTileDefProperties(m.Tiles)
+	if err != nil {
+		return err
+	}
+
+	var layerIDs = make(map[string]bool)
+	err = ValidateLayerProperties(m.Layers, m.Height, m.Width, m.Tiles, layerIDs)
+	if err != nil {
+		return err
+	}
+
+	var roomIDs = make(map[string]bool)
+	err = ValidateRoomProperties(m.Rooms, m.Width, m.Height, roomIDs)
+	if err != nil {
+		return err
+	}
+
+	var objectIDs = make(map[string]bool)
+	err = ValidateObjectProperties(m.Objects, m.Height, m.Width, roomIDs, objectIDs)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Helper functions
+func IsValidHexColor(s string) bool {
+	return hexColorRegex.MatchString(s)
+}
+func ValidateMapProperties(m MapData) error {
 	if m.FormatVersion != 1 {
 		return fmt.Errorf("unsupported map format version: %d", m.FormatVersion)
 	}
@@ -24,23 +59,21 @@ func ValidateMap(m MapData) error {
 	if len(m.Layers) == 0 {
 		return fmt.Errorf("map must have at least one layer")
 	}
-
-	// Validate TileDef properties
-	for name, tile := range m.Tiles {
+	return nil
+}
+func ValidateTileDefProperties(tiles map[string]TileDef) error {
+	for name, tile := range tiles {
 		if name == "" {
 			return fmt.Errorf("tile must have a name")
-		}
-		if tile.Visual.Type != "solid" {
-			return fmt.Errorf("invalid tile type: %s", tile.Visual.Type)
 		}
 		if !IsValidHexColor(tile.Visual.Color) {
 			return fmt.Errorf("invalid tile color: %s", tile.Visual.Color)
 		}
 	}
-
-	// Validate LayerData properties
-	var layerIDs = make(map[string]bool)
-	for _, layer := range m.Layers {
+	return nil
+}
+func ValidateLayerProperties(layers []LayerData, height, width int, tiles map[string]TileDef, layerIDs map[string]bool) error {
+	for _, layer := range layers {
 		if layer.ID == "" {
 			return fmt.Errorf("layer must have an ID")
 		}
@@ -56,27 +89,31 @@ func ValidateMap(m MapData) error {
 			return fmt.Errorf("layer z-index must be greater than or equal to 0")
 		}
 
-		if len(layer.Grid) != m.Height {
+		if layer.CollisionName == "" {
+			return fmt.Errorf("layer must have a collision type")
+		}
+
+		if len(layer.Grid) != height {
 			return fmt.Errorf("layer grid height must match map height")
 		}
 		for _, row := range layer.Grid {
-			if len(row) != m.Width {
+			if len(row) != width {
 				return fmt.Errorf("layer grid row width must match map width")
 			}
 			for _, tileID := range row {
 				if tileID == "" {
 					continue
 				}
-				if _, ok := m.Tiles[tileID]; !ok {
+				if _, ok := tiles[tileID]; !ok {
 					return fmt.Errorf("invalid tile ID: %s", tileID)
 				}
 			}
 		}
 	}
-
-	// Validate RoomData properties
-	var roomIDs = make(map[string]bool)
-	for _, room := range m.Rooms {
+	return nil
+}
+func ValidateRoomProperties(rooms []RoomData, width, height int, roomIDs map[string]bool) error {
+	for _, room := range rooms {
 		if room.ID == "" {
 			return fmt.Errorf("room must have an ID")
 		}
@@ -95,14 +132,14 @@ func ValidateMap(m MapData) error {
 		if room.Bounds.Width <= 0 || room.Bounds.Height <= 0 {
 			return fmt.Errorf("room bounds width and height must be greater than 0")
 		}
-		if room.Bounds.X+room.Bounds.Width > m.Width || room.Bounds.Y+room.Bounds.Height > m.Height {
+		if room.Bounds.X+room.Bounds.Width > width || room.Bounds.Y+room.Bounds.Height > height {
 			return fmt.Errorf("room bounds x and y must be less than the map width and height")
 		}
 	}
-
-	// Validate ObjectData properties
-	var objectIDs = make(map[string]bool)
-	for _, object := range m.Objects {
+	return nil
+}
+func ValidateObjectProperties(objects []ObjectData, height, width int, roomIDs map[string]bool, objectIDs map[string]bool) error {
+	for _, object := range objects {
 		if object.ID == "" {
 			return fmt.Errorf("object must have an ID")
 		}
@@ -111,10 +148,18 @@ func ValidateMap(m MapData) error {
 		}
 		objectIDs[object.ID] = true
 
-		if object.X < 0 || object.X >= m.Width {
+		if object.Type == "" {
+			return fmt.Errorf("object must have a type")
+		}
+
+		if object.Layer == "" {
+			return fmt.Errorf("object must have a layer")
+		}
+
+		if object.X < 0 || object.X >= width {
 			return fmt.Errorf("object x must be greater than 0 and less than or equal to map width")
 		}
-		if object.Y < 0 || object.Y >= m.Height {
+		if object.Y < 0 || object.Y >= height {
 			return fmt.Errorf("object y must be greater than 0 and less than or equal to map height")
 		}
 
@@ -129,11 +174,5 @@ func ValidateMap(m MapData) error {
 			return fmt.Errorf("object must have a room ID")
 		}
 	}
-
 	return nil
-}
-
-// Helper functions
-func IsValidHexColor(s string) bool {
-	return hexColorRegex.MatchString(s)
 }
