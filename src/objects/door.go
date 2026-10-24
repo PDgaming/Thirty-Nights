@@ -47,23 +47,58 @@ func (d *Door) CanInteractRect(rect rl.Rectangle) bool {
 	return rl.CheckCollisionRecs(rect, d.InteractionRect())
 }
 
+func (d *Door) CanActivate(playerRect rl.Rectangle) bool {
+	if d.Locked {
+		return false
+	}
+
+	if d.Open && rl.CheckCollisionRecs(playerRect, d.CollisionRect()) {
+		return false
+	}
+
+	return true
+}
+
 func (d *Door) Interact() {
+	if d.Locked {
+		return
+	}
 	d.Open = !d.Open
 }
 
-func (d *Door) Prompt() string {
-	return "E"
+func (d *Door) PromptFor(playerRect rl.Rectangle) string {
+	if d.Locked {
+		return "Locked"
+	}
+
+	if d.Open {
+		if rl.CheckCollisionRecs(playerRect, d.CollisionRect()) {
+			return ""
+		}
+		return "E - Close"
+	}
+
+	return "E - Open"
 }
 
-// Helper functions
-func (d *Door) CollisionRect() rl.Rectangle {
-	return rl.Rectangle{
-		X:      d.Position.X,
-		Y:      d.Position.Y,
-		Width:  d.Size.X,
-		Height: d.Size.Y,
+func (d *Door) Prompt() string {
+	if d.Locked {
+		return "Locked"
 	}
+	if d.Open {
+		return "E - Close"
+	}
+	return "E - Open"
 }
+
+func (d *Door) PromptAnchor() rl.Vector2 {
+	return rl.Vector2{X: float32(d.Bounds.X) + d.Bounds.Width/2, Y: float32(d.Bounds.Y) - 6}
+}
+
+func (d *Door) CollisionRect() rl.Rectangle {
+	return d.Bounds
+}
+
 func (d *Door) InteractionRect() rl.Rectangle {
 	return rl.Rectangle{
 		X:      d.Bounds.X - interactionPadding,

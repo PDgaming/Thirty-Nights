@@ -43,9 +43,7 @@ func main() {
 		g.Draw()
 
 		rl.EndMode2D()
-		if g.Debug {
-			rl.DrawFPS(0, 0)
-		}
+		g.DrawUI()
 		rl.EndDrawing()
 	}
 }

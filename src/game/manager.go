@@ -27,6 +27,19 @@ func (g *Game) Update(dt float32) {
 	g.Player.Update(dt, g.Map)
 	g.Player.Animator.Update(dt)
 
+	g.ActiveInteractable = g.Map.FindInteractable(g.Player.Rect(), g.Player.Center(), g.Player.Facing)
+
+	if g.ActiveInteractable != nil && rl.IsKeyPressed(rl.KeyE) {
+		canActivate := true
+
+		if aware, ok := g.ActiveInteractable.(world.PlayerAwareInteractable); ok {
+			canActivate = aware.CanActivate(g.Player.Rect())
+		}
+		if canActivate {
+			g.ActiveInteractable.Interact()
+		}
+	}
+
 	playerCenter := rl.Vector2{
 		X: g.Player.Position.X + g.Player.Size.X/2,
 		Y: g.Player.Position.Y + g.Player.Size.Y/2,
@@ -44,6 +57,36 @@ func (g *Game) Draw() {
 	}
 
 	g.Player.Draw(g.Debug)
+
+	if g.Debug {
+		for _, obj := range g.Map.ObjectsByID {
+			obj, ok := obj.(world.Interactable)
+			if !ok {
+				continue
+			}
+
+			if obj == g.ActiveInteractable {
+				rl.DrawRectangleLinesEx(obj.InteractionRect(), 2, rl.Green)
+			} else {
+				rl.DrawRectangleLinesEx(obj.InteractionRect(), 2, rl.Blue)
+			}
+		}
+	}
+}
+
+func (g *Game) DrawUI() {
+	if g.Debug {
+		rl.DrawFPS(0, 0)
+	}
+	if g.ActiveInteractable != nil {
+		prompt := g.ActiveInteractable.Prompt()
+		if aware, ok := g.ActiveInteractable.(world.PlayerAwareInteractable); ok {
+			prompt = aware.PromptFor(g.Player.Rect())
+		}
+		anchor := g.ActiveInteractable.PromptAnchor()
+		anchor = rl.GetWorldToScreen2D(anchor, g.Cam.View)
+		rl.DrawText(prompt, int32(anchor.X), int32(anchor.Y), 20, rl.White)
+	}
 }
 
 func (g *Game) LoadLevel(level int) (err error) {
@@ -69,7 +112,7 @@ func (g *Game) LoadLevel(level int) (err error) {
 		log.Fatalf("invalid Y spawn point: %+v", g.Map.Spawn)
 	}
 	g.Player = player.New(float32(g.Map.Spawn.X*16), float32(g.Map.Spawn.Y*16))
-
+	g.ActiveInteractable = nil
 	g.Cam = camera.New()
 	g.Cam.View.Target = rl.Vector2{
 		X: float32(g.Map.Width*g.Map.TileSize) / 2,

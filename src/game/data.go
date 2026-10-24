@@ -11,5 +11,8 @@ type Game struct {
 	Map    *world.MapData
 	Player *player.Player
 	Cam    *camera.Controller
-	Debug  bool
+
+	ActiveInteractable world.Interactable
+
+	Debug bool
 }

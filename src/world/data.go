@@ -9,6 +9,7 @@ const (
 	CollisionTile
 	CollisionObject
 )
+const interactionFacingThreshold = 0.5
 
 type VisualData struct {
 	Color   string `json:"color"`
@@ -60,17 +61,21 @@ type Collidable interface {
 	CollisionRect() rl.Rectangle
 	Solid() bool
 }
+type PlayerAwareInteractable interface {
+	CanActivate(playerRect rl.Rectangle) bool
+	PromptFor(playerRect rl.Rectangle) string
+}
 type Interactable interface {
 	InteractionRect() rl.Rectangle
 	Interact()
 	Prompt() string
+	PromptAnchor() rl.Vector2
 	CanInteractRect(rect rl.Rectangle) bool
 }
 type ObjectType interface {
 	Update(dt float32)
 	Draw(debug bool)
 	Collidable
-	Interactable
 }
 
 type MapData struct {
