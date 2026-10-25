@@ -31,7 +31,12 @@ func NewSeat(id string, x, y, size int, color rl.Color, properties map[string]an
 func (s *Seat) Update(dt float32) {}
 
 func (s *Seat) Draw(debug bool) {
-	rl.DrawRectangle(int32(s.Position.X), int32(s.Position.Y), int32(s.Size.X), int32(s.Size.Y), s.Color)
+	if s.Occupied {
+		rl.DrawRectangle(int32(s.Position.X), int32(s.Position.Y), int32(s.Size.X), int32(s.Size.Y), rl.Red)
+	} else {
+
+		rl.DrawRectangle(int32(s.Position.X), int32(s.Position.Y), int32(s.Size.X), int32(s.Size.Y), s.Color)
+	}
 
 	if debug {
 		rl.DrawRectangleLines(int32(s.Position.X), int32(s.Position.Y), int32(s.Size.X), int32(s.Size.Y), rl.Black)
@@ -42,8 +47,22 @@ func (s *Seat) CanInteractRect(rect rl.Rectangle) bool {
 	return rl.CheckCollisionRecs(rect, s.InteractionRect())
 }
 
+func (s *Seat) CanActivate(playerRect rl.Rectangle) bool {
+	return rl.CheckCollisionRecs(playerRect, s.InteractionRect())
+}
+
 func (s *Seat) Interact() {
 	s.Occupied = !s.Occupied
+}
+
+func (s *Seat) PromptFor(playerRect rl.Rectangle) string {
+	if rl.CheckCollisionRecs(playerRect, s.Bounds) {
+		return "E - Leave"
+	}
+	if s.Occupied {
+		return "Occupied"
+	}
+	return "E - Sit"
 }
 
 func (s *Seat) Prompt() string {

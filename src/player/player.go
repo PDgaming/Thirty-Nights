@@ -20,11 +20,6 @@ func New(x, y float32) *Player {
 }
 
 func (p *Player) Update(dt float32, m *world.MapData) {
-	if p.Sitting {
-		p.Animator.ChangeState(Idle)
-		return
-	}
-
 	movement := rl.Vector2{
 		X: float32(0),
 		Y: float32(0),
@@ -50,6 +45,11 @@ func (p *Player) Update(dt float32, m *world.MapData) {
 	}
 
 	p.updateFacing(movement)
+
+	if p.Sitting {
+		p.Animator.ChangeState(Idle)
+		return
+	}
 
 	movement = rl.Vector2Normalize(movement)
 

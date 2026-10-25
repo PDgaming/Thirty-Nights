@@ -8,6 +8,11 @@ import (
 	"thirty.nights/src/objects"
 )
 
+var (
+	_ Interactable = (*objects.Door)(nil)
+	_ Interactable = (*objects.Seat)(nil)
+)
+
 func LoadMap(path string) (*MapData, error) {
 	// Read the map file
 	mapFile, err := os.ReadFile(path)
