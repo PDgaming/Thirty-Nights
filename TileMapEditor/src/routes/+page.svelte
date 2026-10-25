@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { EditorState, type EditorTab } from '#lib/editor-state.svelte';
+	import { EditorState, type EditorTab, type LeftPanelTab } from '#lib/editor-state.svelte';
 	import MapCanvas from '#lib/ui/MapCanvas.svelte';
 	import MapSettings from '#lib/ui/MapSettings.svelte';
+	import ObjectSettings from '#lib/ui/ObjectSettings.svelte';
 	import ValidationPanel from '#lib/ui/ValidationPanel.svelte';
 	import Toolbar from '#lib/ui/Toolbar.svelte';
 	import Toolbox from '#lib/ui/Toolbox.svelte';
@@ -22,7 +23,13 @@
 		{ id: 'objects', label: 'Objects' }
 	];
 
+	const leftTabs: { id: LeftPanelTab; label: string }[] = [
+		{ id: 'map', label: 'Map' },
+		{ id: 'object', label: 'Object' }
+	];
+
 	let tabStrip: HTMLDivElement | undefined = $state();
+	let leftTabStrip: HTMLDivElement | undefined = $state();
 
 	// Dock widths are user-adjustable within these bounds. The workspace keeps
 	// a minimum width, so the allowed maximum shrinks on narrow windows.
@@ -220,8 +227,16 @@
 		button?.focus();
 	}
 
-	function exportMap() {
-		editor.exportMap(editor.suggestedFilename);
+	function onLeftTabKeydown(event: KeyboardEvent) {
+		if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+		event.preventDefault();
+		const index = leftTabs.findIndex((tab) => tab.id === editor.leftPanelTab);
+		const next =
+			leftTabs[(index + (event.key === 'ArrowRight' ? 1 : leftTabs.length - 1)) % leftTabs.length];
+		if (!next) return;
+		editor.leftPanelTab = next.id;
+		const button = leftTabStrip?.querySelector<HTMLButtonElement>(`[data-tab="${next.id}"]`);
+		button?.focus();
 	}
 
 	onMount(() => {
@@ -273,7 +288,7 @@
 	<MenuBar {editor} />
 
 	<div class="app-body" bind:this={appBody}>
-		<aside class="dock-column scrolls" style="width: {leftWidth}px; flex-shrink: 0">
+		<aside class="dock-column" style="width: {leftWidth}px; flex-shrink: 0">
 			<section class="dock">
 				<div class="panel-title">
 					<span>Toolbox</span>
@@ -282,8 +297,55 @@
 			</section>
 
 			<Toolbar {editor} />
-			<MapSettings {editor} />
-			<ValidationPanel {editor} />
+
+			<section class="dock dock-grow">
+				<div
+					class="tabs"
+					role="tablist"
+					aria-label="Map and object panels"
+					bind:this={leftTabStrip}
+				>
+					{#each leftTabs as tab (tab.id)}
+						<button
+							class="tab"
+							class:active={editor.leftPanelTab === tab.id}
+							role="tab"
+							id="left-tab-{tab.id}"
+							data-tab={tab.id}
+							aria-selected={editor.leftPanelTab === tab.id}
+							aria-controls="left-panel-{tab.id}"
+							tabindex={editor.leftPanelTab === tab.id ? 0 : -1}
+							onclick={() => (editor.leftPanelTab = tab.id)}
+							onkeydown={onLeftTabKeydown}
+						>
+							{tab.label}
+						</button>
+					{/each}
+				</div>
+				<div
+					class="dock-scroll"
+					role="tabpanel"
+					tabindex="0"
+					id="left-panel-{editor.leftPanelTab}"
+					aria-labelledby="left-tab-{editor.leftPanelTab}"
+				>
+					{#if editor.leftPanelTab === 'map'}
+						<MapSettings {editor} />
+						<ValidationPanel {editor} />
+					{:else if editor.editingObjectId}
+						{#key `${editor.editingObjectId}:${editor.mapEpoch}`}
+							<ObjectSettings {editor} objectId={editor.editingObjectId} />
+						{/key}
+					{:else}
+						<div class="panel-body">
+							<p class="text-[11px] leading-4" style="color: var(--text-faint)">
+								Pick the Select tool (<span class="mono">V</span>) and click a cell with an object
+								to edit it.
+							</p>
+						</div>
+					{/if}
+				</div>
+			</section>
 		</aside>
 
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->

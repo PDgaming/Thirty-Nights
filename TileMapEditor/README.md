@@ -93,8 +93,8 @@ keep the sampled colour. Source tile dimensions and the map's logical
 Validation is stricter than serialization on purpose. It follows the Go
 loader's rules for map metadata, tiles, layers, and object-layer references,
 then adds editor safeguards: spawn bounds, object bounds, and practical size
-limits. Object types the game loader cannot build yet, such as `chest`, produce
-warnings instead of blocking export. Export is disabled while there are errors.
+limits. Object types are not checked against the game loader; the editor lets
+any type through. Export is disabled while there are errors.
 
 ## Code layout
 

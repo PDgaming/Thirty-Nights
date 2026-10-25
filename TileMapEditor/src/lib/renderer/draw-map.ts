@@ -1,8 +1,8 @@
-import type { GameMap } from '../map-model/types';
+import type { CellPosition, GameMap } from '../map-model/types';
 import type { TilesetSlice } from '../tileset/slicing';
 import type { Viewport } from './viewport';
 
-export type EditorTool = 'paint' | 'erase' | 'object' | 'spawn';
+export type EditorTool = 'select' | 'paint' | 'erase' | 'object' | 'spawn';
 
 export interface TilesetRenderData {
 	image: HTMLImageElement | null;
@@ -25,6 +25,7 @@ export interface MapRenderOptions {
 	activeLayerId: string | null;
 	activeObjectTypeId: string | null;
 	objectColors: Record<string, string>;
+	selectedCell: CellPosition | null;
 	tool: EditorTool;
 }
 
@@ -77,6 +78,8 @@ export function drawMap(options: MapRenderOptions): void {
 			}
 		}
 	}
+
+	drawSelection(options, tilePx);
 
 	ctx.strokeStyle = MAP_BORDER;
 	ctx.lineWidth = 1;
@@ -191,12 +194,69 @@ function drawGrid(
 }
 
 function drawObjects(options: MapRenderOptions, tilePx: number): void {
-	const { ctx, map, view, objectColors } = options;
+	const { ctx, map, view, objectColors, hover, tool } = options;
+	let hoveredId: string | null = null;
+	if (hover) {
+		for (let index = map.objects.length - 1; index >= 0; index -= 1) {
+			const object = map.objects[index];
+			if (object.x === hover.x && object.y === hover.y) {
+				hoveredId = object.id;
+				break;
+			}
+		}
+	}
+
 	for (const object of map.objects) {
 		const px = view.offsetX + object.x * tilePx;
 		const py = view.offsetY + object.y * tilePx;
-		drawObjectMarker(ctx, px, py, Math.ceil(tilePx), objectColors[object.type] ?? OBJECT, 0.92);
+		const size = Math.ceil(tilePx);
+		drawObjectMarker(ctx, px, py, size, objectColors[object.type] ?? OBJECT, 0.92);
+		if (tool === 'select' && object.id === hoveredId) drawObjectFocus(ctx, px, py, size);
 	}
+}
+
+function drawSelection(options: MapRenderOptions, tilePx: number): void {
+	const { ctx, map, view, selectedCell, tool } = options;
+	if (tool !== 'select' || !selectedCell) return;
+	if (
+		selectedCell.x < 0 ||
+		selectedCell.y < 0 ||
+		selectedCell.x >= map.width ||
+		selectedCell.y >= map.height
+	) {
+		return;
+	}
+
+	const px = view.offsetX + selectedCell.x * tilePx;
+	const py = view.offsetY + selectedCell.y * tilePx;
+	const size = Math.ceil(tilePx);
+
+	ctx.save();
+	ctx.fillStyle = 'rgba(111, 159, 216, 0.16)';
+	ctx.fillRect(px, py, size, size);
+	ctx.strokeStyle = ACCENT;
+	ctx.lineWidth = 2;
+	ctx.strokeRect(px + 1, py + 1, size - 2, size - 2);
+	ctx.restore();
+}
+
+function drawObjectFocus(
+	ctx: CanvasRenderingContext2D,
+	px: number,
+	py: number,
+	size: number
+): void {
+	const cx = px + size / 2;
+	const cy = py + size / 2;
+	const radius = Math.max(3, Math.min(size * 0.3, 11));
+
+	ctx.save();
+	ctx.strokeStyle = ACCENT;
+	ctx.lineWidth = 1.5;
+	ctx.beginPath();
+	ctx.arc(cx, cy, radius + 3, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.restore();
 }
 
 function drawObjectMarker(
@@ -285,6 +345,10 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 		ctx.fillRect(px, py, drawWidth, drawHeight);
 		ctx.strokeStyle = ERASE;
 		ctx.lineWidth = 1.5;
+		ctx.strokeRect(px + 0.5, py + 0.5, drawWidth - 1, drawHeight - 1);
+	} else if (tool === 'select') {
+		ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+		ctx.lineWidth = 1;
 		ctx.strokeRect(px + 0.5, py + 0.5, drawWidth - 1, drawHeight - 1);
 	} else if (tool === 'object') {
 		const color = activeObjectTypeId ? objectColors[activeObjectTypeId] : undefined;

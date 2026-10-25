@@ -1,5 +1,10 @@
 <script lang="ts">
-	import type { EditorState } from '#lib/editor-state.svelte';
+	import {
+		OBJECT_ATTRIBUTE_TYPES,
+		isObjectAttributeType,
+		type EditorState,
+		type ObjectAttributeType
+	} from '#lib/editor-state.svelte';
 	import Icon from '@iconify/svelte';
 	import { tick } from 'svelte';
 	import { icons } from './icons';
@@ -12,6 +17,10 @@
 	let newTypeInput: HTMLInputElement | undefined = $state();
 	let renameDraft = $state('');
 	let colorDraft = $state('#f472b6');
+	let newAttributeName = $state('');
+	let newAttributeType = $state<ObjectAttributeType>('boolean');
+	let addAttributeOpen = $state(false);
+	let newAttributeInput: HTMLInputElement | undefined = $state();
 
 	const active = $derived(editor.activeObjectType);
 	const activeCount = $derived(active ? editor.objectCountForType(active.id) : 0);
@@ -50,6 +59,34 @@
 
 	function enterBlur(event: KeyboardEvent) {
 		if (event.key === 'Enter') (event.currentTarget as HTMLInputElement).blur();
+	}
+
+	function addAttribute() {
+		if (!active) return;
+		if (editor.addObjectAttribute(active.id, newAttributeName, newAttributeType)) {
+			newAttributeName = '';
+			addAttributeOpen = false;
+		}
+	}
+
+	async function toggleAddAttribute() {
+		addAttributeOpen = !addAttributeOpen;
+		if (addAttributeOpen) {
+			await tick();
+			newAttributeInput?.focus();
+		}
+	}
+
+	function commitAttributeName(name: string, event: Event) {
+		if (!active) return;
+		const input = event.currentTarget as HTMLInputElement;
+		if (!editor.renameObjectAttribute(active.id, name, input.value)) input.value = name;
+	}
+
+	function commitAttributeType(name: string, event: Event) {
+		if (!active) return;
+		const type = (event.currentTarget as HTMLSelectElement).value;
+		if (isObjectAttributeType(type)) editor.setObjectAttributeType(active.id, name, type);
 	}
 </script>
 
@@ -155,6 +192,102 @@
 							/>
 						</div>
 					</label>
+				</div>
+
+				<div class="mt-2.5 border-t pt-2" style="border-color: var(--border)">
+					<div class="mb-1.5 flex items-center justify-between">
+						<span class="field-label" style="margin: 0">Attributes</span>
+						<div class="flex items-center gap-1">
+							<span class="badge">{active.attributes.length}</span>
+							<button
+								class="icon-btn"
+								class:active={addAttributeOpen}
+								onclick={toggleAddAttribute}
+								aria-expanded={addAttributeOpen}
+								aria-label="Toggle new attribute form"
+								title={addAttributeOpen ? 'Hide new attribute form' : 'New attribute'}
+							>
+								<Icon icon={icons.plus} width="13" height="13" />
+							</button>
+						</div>
+					</div>
+					<div class="flex flex-col gap-1">
+						{#each active.attributes as attribute (attribute.name)}
+							<div class="flex items-center gap-1.5">
+								<input
+									class="field-sm mono min-w-0 flex-1"
+									value={attribute.name}
+									onchange={(event) => commitAttributeName(attribute.name, event)}
+									onkeydown={enterBlur}
+									title="Attribute name"
+								/>
+								<select
+									class="field-sm shrink-0"
+									style="width: 84px; min-width: 84px"
+									value={attribute.type}
+									onchange={(event) => commitAttributeType(attribute.name, event)}
+									title="Attribute type"
+								>
+									{#each OBJECT_ATTRIBUTE_TYPES as type (type)}
+										<option value={type}>{type}</option>
+									{/each}
+								</select>
+								<button
+									class="icon-btn object-delete shrink-0"
+									title={`Remove attribute "${attribute.name}"`}
+									onclick={() => editor.removeObjectAttribute(active.id, attribute.name)}
+								>
+									<Icon icon={icons.trash} width="13" height="13" />
+								</button>
+							</div>
+						{:else}
+							<p class="text-[11px]" style="color: var(--text-faint)">
+								No attributes yet. Add one with the + button.
+							</p>
+						{/each}
+					</div>
+					{#if addAttributeOpen}
+						<div
+							class="mt-1.5 rounded border p-1.5"
+							style="border-color: var(--border-strong); background: var(--panel-sunken)"
+						>
+							<div class="flex flex-row items-center gap-1.5">
+								<input
+									bind:this={newAttributeInput}
+									class="field-sm mono min-w-0 flex-1"
+									placeholder="locked"
+									value={newAttributeName}
+									oninput={(event) => (newAttributeName = event.currentTarget.value)}
+									onkeydown={(event) => {
+										if (event.key === 'Enter') addAttribute();
+										if (event.key === 'Escape') addAttributeOpen = false;
+									}}
+									title="New attribute name"
+								/>
+								<select
+									class="field-sm shrink-0"
+									style="width: 84px; min-width: 84px"
+									value={newAttributeType}
+									onchange={(event) => {
+										const type = event.currentTarget.value;
+										if (isObjectAttributeType(type)) newAttributeType = type;
+									}}
+									title="New attribute type"
+								>
+									{#each OBJECT_ATTRIBUTE_TYPES as type (type)}
+										<option value={type}>{type}</option>
+									{/each}
+								</select>
+								<button
+									class="btn btn-xs shrink-0"
+									onclick={addAttribute}
+									disabled={newAttributeName.trim() === ''}
+								>
+									Add
+								</button>
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 		{/if}

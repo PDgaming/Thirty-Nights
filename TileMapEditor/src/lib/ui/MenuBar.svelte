@@ -70,16 +70,21 @@
 				close();
 				return;
 			}
-			if (!(event.ctrlKey || event.metaKey) || editableTarget(event.target)) return;
+			if (!(event.ctrlKey || event.metaKey)) return;
+			// Saving is global: it must work even while a field or the schema editor
+			// has focus, and it must never fall through to the browser's save dialog.
+			if (event.code === 'KeyS' && !event.shiftKey) {
+				event.preventDefault();
+				editor.saveNow();
+				return;
+			}
+			if (editableTarget(event.target)) return;
 			if (event.code === 'KeyN' && !event.shiftKey) {
 				event.preventDefault();
 				newMap();
 			} else if (event.code === 'KeyO' && !event.shiftKey) {
 				event.preventDefault();
 				mapInput?.click();
-			} else if (event.code === 'KeyS' && !event.shiftKey) {
-				event.preventDefault();
-				editor.saveNow();
 			} else if (event.code === 'KeyE' && !event.shiftKey) {
 				event.preventDefault();
 				if (editor.canExport) exportMap();
@@ -253,6 +258,10 @@
 		</button>
 		{#if open === 'tools'}
 			<div class="menu-popup" role="menu">
+				<button class="menu-item" role="menuitem" onclick={() => run(() => pickTool('select'))}>
+					<span>Select</span>
+					<kbd>V</kbd>
+				</button>
 				<button class="menu-item" role="menuitem" onclick={() => run(() => pickTool('paint'))}>
 					<span>Paint</span>
 					<kbd>B</kbd>
@@ -304,7 +313,7 @@
 					onclick={() =>
 						run(() =>
 							editor.notify(
-								'B paint · E erase · O object · S spawn · G grid · +/- zoom · 1 actual size · Ctrl+Z/Y undo/redo',
+								'V select · B paint · E erase · O object · S spawn · G grid · +/- zoom · 1 actual size · Ctrl+Z/Y undo/redo',
 								'info'
 							)
 						)}

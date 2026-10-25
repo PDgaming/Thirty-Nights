@@ -1,8 +1,6 @@
 export const COLLISION_TYPES = ['none', 'tile', 'object'] as const;
 export type CollisionName = (typeof COLLISION_TYPES)[number];
 
-/** Object types the game loader can currently build. Other types export as warnings. */
-export const SUPPORTED_OBJECT_TYPES = ['door'] as const;
 export const FORMAT_VERSION = 1;
 
 export interface TileVisual {

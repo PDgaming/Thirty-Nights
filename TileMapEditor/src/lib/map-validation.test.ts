@@ -97,14 +97,10 @@ describe('validateMap', () => {
 		expect(text).toContain('must be inside the map');
 	});
 
-	it('warns about types the game loader does not handle, without blocking export', () => {
+	it('does not flag object types it does not recognize', () => {
 		const map = validMap();
 		map.objects = [{ id: 'chest-1', type: 'chest', layer: 'floor', x: 1, y: 1, properties: {} }];
-		const issues = validateMap(map);
-		expect(issues.some((issue) => issue.message.includes('does not handle object type'))).toBe(
-			true
-		);
-		expect(hasBlockingErrors(issues)).toBe(false);
+		expect(validateMap(map)).toEqual([]);
 	});
 
 	it('requires a door object to have a door tile definition', () => {

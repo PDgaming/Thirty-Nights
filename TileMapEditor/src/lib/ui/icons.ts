@@ -5,6 +5,7 @@ import eyeOff from '@iconify-icons/lucide/eye-off';
 import eye from '@iconify-icons/lucide/eye';
 import grid3x3 from '@iconify-icons/lucide/grid-3x3';
 import gripVertical from '@iconify-icons/lucide/grip-vertical';
+import mousePointer2 from '@iconify-icons/lucide/mouse-pointer-2';
 import paintbrush from '@iconify-icons/lucide/paintbrush';
 import plus from '@iconify-icons/lucide/plus';
 import trash2 from '@iconify-icons/lucide/trash-2';
@@ -20,6 +21,7 @@ export const icons = {
 	eraser,
 	crosshair,
 	diamond,
+	mousePointer: mousePointer2,
 	grid: grid3x3,
 	gripVertical,
 	eye,

@@ -1,5 +1,12 @@
 import { createEmptyMap, createTileDef, type NewMapOptions } from './map-model/factory';
-import type { CollisionName, GameMap, LayerData, TileDef } from './map-model/types';
+import type {
+	CellPosition,
+	CollisionName,
+	GameMap,
+	LayerData,
+	ObjectData,
+	TileDef
+} from './map-model/types';
 import {
 	addLayer,
 	addObject,
@@ -54,6 +61,7 @@ import type { EditorTool, TilesetRenderData } from './renderer/draw-map';
 import { fitViewport, zoomAt as zoomAtOperation, type Viewport } from './renderer/viewport';
 
 export type EditorTab = 'tileset' | 'inspector' | 'objects';
+export type LeftPanelTab = 'map' | 'object';
 
 const EDITOR_TABS: readonly EditorTab[] = ['tileset', 'inspector', 'objects'];
 export const TAB_STORAGE_KEY = 'tilemap-editor.tab';
@@ -89,14 +97,49 @@ export interface Notice {
 	text: string;
 }
 
+/** Value types an object attribute can map to in the exported `properties`. */
+export const OBJECT_ATTRIBUTE_TYPES = ['string', 'number', 'boolean'] as const;
+export type ObjectAttributeType = (typeof OBJECT_ATTRIBUTE_TYPES)[number];
+
+export function isObjectAttributeType(value: unknown): value is ObjectAttributeType {
+	return typeof value === 'string' && (OBJECT_ATTRIBUTE_TYPES as readonly string[]).includes(value);
+}
+
+/** The JSON value an attribute starts with until its value is chosen elsewhere. */
+export function defaultValueForAttribute(type: ObjectAttributeType): unknown {
+	if (type === 'number') return 0;
+	if (type === 'boolean') return false;
+	return '';
+}
+
+/** Editor-side attribute declaration; values live on each placed object. */
+export interface ObjectAttributeDef {
+	name: string;
+	type: ObjectAttributeType;
+}
+
 /** Editor-side object palette entry. Object types are not exported. */
 export interface ObjectTypeDef {
 	id: string;
 	color: string;
+	attributes: ObjectAttributeDef[];
 }
 
-const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [{ id: 'door', color: '#9a7047' }];
+const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [{ id: 'door', color: '#9a7047', attributes: [] }];
 const OBJECT_MARKER_COLORS = ['#f472b6', '#60a5fa', '#4ade80', '#c084fc', '#facc15', '#fb923c'];
+
+function cloneObjectTypes(types: ObjectTypeDef[]): ObjectTypeDef[] {
+	return types.map((type) => ({
+		...type,
+		attributes: type.attributes.map((attribute) => ({ ...attribute }))
+	}));
+}
+
+function attributeTypeOf(value: unknown): ObjectAttributeType {
+	if (typeof value === 'number') return 'number';
+	if (typeof value === 'boolean') return 'boolean';
+	return 'string';
+}
 
 /** Rebuild the object palette from the types used by an imported map. */
 function objectTypesForMap(map: GameMap): ObjectTypeDef[] {
@@ -105,10 +148,22 @@ function objectTypesForMap(map: GameMap): ObjectTypeDef[] {
 		if (!ids.includes(object.type)) ids.push(object.type);
 	}
 	if (ids.length === 0) ids.push('door');
-	return ids.map((id, index) => ({
-		id,
-		color: map.tiles[id]?.visual.color ?? OBJECT_MARKER_COLORS[index % OBJECT_MARKER_COLORS.length]
-	}));
+	return ids.map((id, index) => {
+		const attributes: ObjectAttributeDef[] = [];
+		for (const object of map.objects) {
+			if (object.type !== id) continue;
+			for (const [name, value] of Object.entries(object.properties)) {
+				if (attributes.some((attribute) => attribute.name === name)) continue;
+				attributes.push({ name, type: attributeTypeOf(value) });
+			}
+		}
+		return {
+			id,
+			color:
+				map.tiles[id]?.visual.color ?? OBJECT_MARKER_COLORS[index % OBJECT_MARKER_COLORS.length],
+			attributes
+		};
+	});
 }
 
 export interface TilesetImageState {
@@ -156,9 +211,12 @@ export class EditorState {
 	activeLayerId = $state('floor');
 	#activeTileId = $state<string | null>(null);
 	#activeObjectTypeId = $state<string | null>(null);
-	objectTypes = $state.raw<ObjectTypeDef[]>(DEFAULT_OBJECT_TYPES.map((type) => ({ ...type })));
+	objectTypes = $state.raw<ObjectTypeDef[]>(cloneObjectTypes(DEFAULT_OBJECT_TYPES));
 	tool = $state<EditorTool>('paint');
 	tab = $state<EditorTab>('tileset');
+	leftPanelTab = $state<LeftPanelTab>('map');
+	editingObjectId = $state<string | null>(null);
+	selectedCell = $state<CellPosition | null>(null);
 	hiddenLayers = $state<string[]>([]);
 
 	/** Assigning a tile clears any object selection, and vice versa. */
@@ -535,7 +593,7 @@ export class EditorState {
 		this.map = structuredClone(snapshot.map);
 		this.tileBindings = { ...snapshot.tileBindings };
 		this.autoTileColors = { ...snapshot.autoTileColors };
-		this.objectTypes = snapshot.objectTypes.map((type) => ({ ...type }));
+		this.objectTypes = cloneObjectTypes(snapshot.objectTypes);
 		this.mapEpoch += 1;
 		this.mapRevision += 1;
 		this.schedulePersist();
@@ -557,7 +615,7 @@ export class EditorState {
 			map: structuredClone(this.map),
 			tileBindings: { ...this.tileBindings },
 			autoTileColors: { ...this.autoTileColors },
-			objectTypes: this.objectTypes.map((type) => ({ ...type }))
+			objectTypes: cloneObjectTypes(this.objectTypes)
 		};
 	}
 
@@ -780,7 +838,9 @@ export class EditorState {
 		this.activeLayerId = this.map.layers[0].id;
 		this.activeTileId = null;
 		this.activeObjectTypeId = null;
-		this.objectTypes = DEFAULT_OBJECT_TYPES.map((type) => ({ ...type }));
+		this.editingObjectId = null;
+		this.selectedCell = null;
+		this.objectTypes = cloneObjectTypes(DEFAULT_OBJECT_TYPES);
 		this.autoTileColors = {};
 		this.hiddenLayers = [];
 		this.hover = null;
@@ -802,6 +862,8 @@ export class EditorState {
 		this.activeLayerId = map.layers[0]?.id ?? '';
 		this.activeTileId = null;
 		this.activeObjectTypeId = null;
+		this.editingObjectId = null;
+		this.selectedCell = null;
 		this.objectTypes = objectTypesForMap(map);
 		this.autoTileColors = {};
 		this.tileBindings = {};
@@ -1095,6 +1157,69 @@ export class EditorState {
 		return countObjectsOfType(this.map, id);
 	}
 
+	/** Topmost object sitting on a cell, used for hover editing. */
+	objectAtCell(x: number, y: number): ObjectData | undefined {
+		for (let index = this.map.objects.length - 1; index >= 0; index -= 1) {
+			const object = this.map.objects[index];
+			if (object.x === x && object.y === y) return object;
+		}
+		return undefined;
+	}
+
+	/** Show an object in the left-hand object tab. */
+	openObjectEditor(id: string): void {
+		if (!this.map.objects.some((object) => object.id === id)) return;
+		this.editingObjectId = id;
+		this.leftPanelTab = 'object';
+	}
+
+	/** Select a cell with the select tool and show any object sitting on it. */
+	selectCell(x: number, y: number): void {
+		if (!inBounds(this.map, x, y)) return;
+		this.selectedCell = { x, y };
+		const object = this.objectAtCell(x, y);
+		if (object) {
+			this.openObjectEditor(object.id);
+			return;
+		}
+		this.editingObjectId = null;
+	}
+
+	/** Move an object and replace the values shown in its settings panel. */
+	updateObject(
+		id: string,
+		patch: { x?: number; y?: number; properties?: Record<string, unknown> }
+	): boolean {
+		const object = this.map.objects.find((item) => item.id === id);
+		if (!object) return false;
+
+		const x = patch.x ?? object.x;
+		const y = patch.y ?? object.y;
+		if (!Number.isInteger(x) || !Number.isInteger(y) || !inBounds(this.map, x, y)) {
+			this.notify('Object position must be inside the map', 'error');
+			return false;
+		}
+		const occupied = this.map.objects.some(
+			(item) => item.id !== id && item.type === object.type && item.x === x && item.y === y
+		);
+		if (occupied) {
+			this.notify(`Another "${object.type}" object already occupies (${x}, ${y})`, 'error');
+			return false;
+		}
+
+		const previousX = object.x;
+		const previousY = object.y;
+		object.x = x;
+		object.y = y;
+		if (patch.properties) object.properties = { ...patch.properties };
+		if (this.selectedCell?.x === previousX && this.selectedCell.y === previousY) {
+			this.selectedCell = { x, y };
+		}
+		this.map = { ...this.map, objects: [...this.map.objects] };
+		this.commit();
+		return true;
+	}
+
 	addObjectType(id: string, color: string): boolean {
 		const trimmed = id.trim();
 		if (trimmed === '') {
@@ -1109,7 +1234,7 @@ export class EditorState {
 			this.notify('Object type colour must be #rgb, #rrggbb, or #rrggbbaa', 'error');
 			return false;
 		}
-		this.objectTypes = [...this.objectTypes, { id: trimmed, color }];
+		this.objectTypes = [...this.objectTypes, { id: trimmed, color, attributes: [] }];
 		this.selectObjectType(trimmed);
 		this.notify(`Added object type "${trimmed}"`, 'success');
 		return true;
@@ -1140,6 +1265,143 @@ export class EditorState {
 	setObjectTypeColor(id: string, color: string): void {
 		if (!isValidHexColor(color)) return;
 		this.objectTypes = this.objectTypes.map((type) => (type.id === id ? { ...type, color } : type));
+	}
+
+	private defaultPropertiesForType(type: ObjectTypeDef): Record<string, unknown> {
+		const properties: Record<string, unknown> = {};
+		for (const attribute of type.attributes) {
+			properties[attribute.name] = defaultValueForAttribute(attribute.type);
+		}
+		return properties;
+	}
+
+	/** Keep placed objects' properties in step with their type's attribute list. */
+	private syncObjectProperties(typeId: string): void {
+		const type = this.objectTypes.find((item) => item.id === typeId);
+		if (!type) return;
+		const names = type.attributes.map((attribute) => attribute.name);
+		for (const object of this.map.objects) {
+			if (object.type !== typeId) continue;
+			for (const attribute of type.attributes) {
+				if (!Object.prototype.hasOwnProperty.call(object.properties, attribute.name)) {
+					object.properties[attribute.name] = defaultValueForAttribute(attribute.type);
+				}
+			}
+			for (const name of Object.keys(object.properties)) {
+				if (!names.includes(name)) delete object.properties[name];
+			}
+		}
+		this.map = { ...this.map, objects: [...this.map.objects] };
+	}
+
+	addObjectAttribute(typeId: string, name: string, type: ObjectAttributeType): boolean {
+		const target = this.objectTypes.find((item) => item.id === typeId);
+		if (!target) return false;
+		const trimmed = name.trim();
+		if (trimmed === '') {
+			this.notify('Attribute name is required', 'error');
+			return false;
+		}
+		if (!isObjectAttributeType(type)) {
+			this.notify('Attribute type must be string, number, or boolean', 'error');
+			return false;
+		}
+		if (target.attributes.some((attribute) => attribute.name === trimmed)) {
+			this.notify(`Attribute "${trimmed}" already exists on "${typeId}"`, 'error');
+			return false;
+		}
+
+		this.objectTypes = this.objectTypes.map((item) =>
+			item.id === typeId
+				? { ...item, attributes: [...item.attributes, { name: trimmed, type }] }
+				: item
+		);
+		this.syncObjectProperties(typeId);
+		this.commit();
+		return true;
+	}
+
+	renameObjectAttribute(typeId: string, oldName: string, newName: string): boolean {
+		const target = this.objectTypes.find((item) => item.id === typeId);
+		if (!target) return false;
+		const trimmed = newName.trim();
+		if (trimmed === oldName) return true;
+		if (trimmed === '') {
+			this.notify('Attribute name is required', 'error');
+			return false;
+		}
+		if (!target.attributes.some((attribute) => attribute.name === oldName)) return false;
+		if (target.attributes.some((attribute) => attribute.name === trimmed)) {
+			this.notify(`Attribute "${trimmed}" already exists on "${typeId}"`, 'error');
+			return false;
+		}
+
+		this.objectTypes = this.objectTypes.map((item) =>
+			item.id === typeId
+				? {
+						...item,
+						attributes: item.attributes.map((attribute) =>
+							attribute.name === oldName ? { ...attribute, name: trimmed } : attribute
+						)
+					}
+				: item
+		);
+		for (const object of this.map.objects) {
+			if (object.type !== typeId) continue;
+			if (!Object.prototype.hasOwnProperty.call(object.properties, oldName)) continue;
+			object.properties[trimmed] = object.properties[oldName];
+			delete object.properties[oldName];
+		}
+		this.map = { ...this.map, objects: [...this.map.objects] };
+		this.commit();
+		return true;
+	}
+
+	setObjectAttributeType(typeId: string, name: string, type: ObjectAttributeType): void {
+		if (!isObjectAttributeType(type)) return;
+		const target = this.objectTypes.find((item) => item.id === typeId);
+		if (!target || !target.attributes.some((attribute) => attribute.name === name)) return;
+
+		this.objectTypes = this.objectTypes.map((item) =>
+			item.id === typeId
+				? {
+						...item,
+						attributes: item.attributes.map((attribute) =>
+							attribute.name === name ? { ...attribute, type } : attribute
+						)
+					}
+				: item
+		);
+		for (const object of this.map.objects) {
+			if (object.type !== typeId) continue;
+			if (!Object.prototype.hasOwnProperty.call(object.properties, name)) continue;
+			if (typeof object.properties[name] !== type) {
+				object.properties[name] = defaultValueForAttribute(type);
+			}
+		}
+		this.map = { ...this.map, objects: [...this.map.objects] };
+		this.commit();
+	}
+
+	removeObjectAttribute(typeId: string, name: string): boolean {
+		const target = this.objectTypes.find((item) => item.id === typeId);
+		if (!target || !target.attributes.some((attribute) => attribute.name === name)) return false;
+
+		this.objectTypes = this.objectTypes.map((item) =>
+			item.id === typeId
+				? {
+						...item,
+						attributes: item.attributes.filter((attribute) => attribute.name !== name)
+					}
+				: item
+		);
+		for (const object of this.map.objects) {
+			if (object.type !== typeId) continue;
+			delete object.properties[name];
+		}
+		this.map = { ...this.map, objects: [...this.map.objects] };
+		this.commit();
+		return true;
 	}
 
 	deleteObjectType(id: string): boolean {
@@ -1303,7 +1565,10 @@ export class EditorState {
 		let changed = false;
 		for (const cell of lineBetween(from, to)) {
 			if (!inBounds(this.map, cell.x, cell.y)) continue;
-			if (addObject(this.map, type.id, layer.id, cell.x, cell.y)) changed = true;
+			if (
+				addObject(this.map, type.id, layer.id, cell.x, cell.y, this.defaultPropertiesForType(type))
+			)
+				changed = true;
 		}
 		if (changed) this.commit();
 	}

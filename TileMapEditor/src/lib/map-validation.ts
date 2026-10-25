@@ -1,5 +1,5 @@
 import type { GameMap, LayerData, ObjectData, TileDefs } from './map-model/types';
-import { COLLISION_TYPES, FORMAT_VERSION, SUPPORTED_OBJECT_TYPES } from './map-model/types';
+import { COLLISION_TYPES, FORMAT_VERSION } from './map-model/types';
 
 export type IssueSeverity = 'error' | 'warning';
 
@@ -33,7 +33,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 /**
  * Mirrors the checks performed by the Go loader's ValidateMap, plus the
  * editor-specific checks required by the product spec (spawn bounds, object
- * types the loader can build). Only errors block export.
+ * bounds). Only errors block export.
  */
 export function validateMap(map: GameMap): ValidationIssue[] {
 	const issues: ValidationIssue[] = [];
@@ -76,7 +76,7 @@ export function validateMap(map: GameMap): ValidationIssue[] {
 	}
 
 	validateSpawn(map, error);
-	validateObjects(map, error, warning);
+	validateObjects(map, error);
 
 	return issues;
 }
@@ -207,11 +207,7 @@ function validateSpawn(map: GameMap, error: (path: string, message: string) => v
 	}
 }
 
-function validateObjects(
-	map: GameMap,
-	error: (path: string, message: string) => void,
-	warning: (path: string, message: string) => void
-): void {
+function validateObjects(map: GameMap, error: (path: string, message: string) => void): void {
 	if (!Array.isArray(map.objects)) {
 		error('objects', 'objects must be an array');
 		return;
@@ -222,7 +218,7 @@ function validateObjects(
 
 	for (const [index, object] of map.objects.entries()) {
 		const path = `objects[${index}]`;
-		validateObject(map, object, path, objectIDs, layerIDs, error, warning);
+		validateObject(map, object, path, objectIDs, layerIDs, error);
 	}
 }
 
@@ -232,8 +228,7 @@ function validateObject(
 	path: string,
 	objectIDs: Set<string>,
 	layerIDs: Set<string>,
-	error: (path: string, message: string) => void,
-	warning: (path: string, message: string) => void
+	error: (path: string, message: string) => void
 ): void {
 	if (!isPlainObject(object)) {
 		error(path, 'object must be an object');
@@ -248,9 +243,10 @@ function validateObject(
 	}
 	if (typeof object.type !== 'string' || object.type.trim() === '') {
 		error(path + '.type', 'object type is required');
-	} else if (!(SUPPORTED_OBJECT_TYPES as readonly string[]).includes(object.type)) {
-		warning(path + '.type', `the game loader does not handle object type "${object.type}" yet`);
-	} else if (!Object.prototype.hasOwnProperty.call(map.tiles, object.type)) {
+	} else if (
+		object.type === 'door' &&
+		!Object.prototype.hasOwnProperty.call(map.tiles, object.type)
+	) {
 		error(path + '.type', `object type "${object.type}" must also exist as a tile definition`);
 	}
 	if (typeof object.layer !== 'string' || object.layer.trim() === '') {

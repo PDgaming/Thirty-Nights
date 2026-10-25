@@ -58,6 +58,7 @@
 			activeLayerId: editor.activeLayerId,
 			activeObjectTypeId: editor.activeObjectTypeId,
 			objectColors: editor.objectColors,
+			selectedCell: editor.selectedCell,
 			tool: editor.tool
 		});
 	}
@@ -114,6 +115,10 @@
 				}
 				if (event.code === 'KeyB') {
 					editor.tool = 'paint';
+					return;
+				}
+				if (event.code === 'KeyV') {
+					editor.tool = 'select';
 					return;
 				}
 				if (event.code === 'KeyE') {
@@ -192,6 +197,7 @@
 			editor.activeLayerId,
 			editor.activeObjectTypeId,
 			editor.objectTypes,
+			editor.selectedCell,
 			editor.tool,
 			width,
 			height
@@ -227,6 +233,10 @@
 		const alternateTool = event.button === 2;
 
 		const cell = cellFromEvent(event);
+		if (editor.tool === 'select') {
+			if (!alternateTool) editor.selectCell(cell.x, cell.y);
+			return;
+		}
 		if (!alternateTool && editor.tool === 'spawn') {
 			editor.setSpawnFromCell(cell.x, cell.y);
 			editor.tool = 'paint';
@@ -303,7 +313,9 @@
 					? 'cell'
 					: editor.tool === 'object'
 						? 'copy'
-						: 'crosshair'
+						: editor.tool === 'select'
+							? 'default'
+							: 'crosshair'
 	);
 </script>
 

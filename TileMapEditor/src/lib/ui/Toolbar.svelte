@@ -7,6 +7,8 @@
 
 	const toolInfo = $derived.by(() => {
 		switch (editor.tool) {
+			case 'select':
+				return { name: 'Select', icon: icons.mousePointer, key: 'V' };
 			case 'paint':
 				return { name: 'Paint', icon: icons.paintbrush, key: 'B' };
 			case 'erase':
@@ -58,6 +60,19 @@
 						>{editor.activeLayer?.id ?? 'the active layer'}</span
 					>.
 				</p>
+			{:else if editor.tool === 'select'}
+				{#if editor.selectedCell}
+					<p class="t-meta leading-4">
+						Cell <span class="mono" style="color: var(--text)"
+							>{editor.selectedCell.x}, {editor.selectedCell.y}</span
+						>
+						{#if editor.editingObjectId}
+							· <span class="mono" style="color: var(--text)">{editor.editingObjectId}</span>
+						{/if}
+					</p>
+				{:else}
+					<p class="t-meta leading-4">Click a cell to select it. Objects open in the Object tab.</p>
+				{/if}
 			{:else if editor.tool === 'object'}
 				{#if editor.activeObjectType}
 					<div class="flex items-center gap-2">

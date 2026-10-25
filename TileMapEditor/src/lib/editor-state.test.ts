@@ -302,6 +302,140 @@ describe('selection persistence', () => {
 	});
 });
 
+describe('object editing', () => {
+	function placeDoor(editor: EditorState, x: number, y: number) {
+		editor.selectObjectType('door');
+		editor.placeObjectLine({ x, y }, { x, y });
+	}
+
+	it('finds the topmost object on a cell', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 2, 3);
+
+		expect(editor.objectAtCell(2, 3)?.id).toBe(editor.map.objects[0].id);
+		expect(editor.objectAtCell(0, 0)).toBeUndefined();
+	});
+
+	it('opens the left object tab for an existing object', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 2, 3);
+		const object = editor.map.objects[0];
+
+		editor.openObjectEditor(object.id);
+
+		expect(editor.leftPanelTab).toBe('object');
+		expect(editor.editingObjectId).toBe(object.id);
+	});
+
+	it('selects a cell and shows the object on it, or clears the object on an empty cell', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 2, 3);
+
+		editor.selectCell(2, 3);
+		expect(editor.selectedCell).toEqual({ x: 2, y: 3 });
+		expect(editor.editingObjectId).toBe(editor.map.objects[0].id);
+		expect(editor.leftPanelTab).toBe('object');
+
+		editor.selectCell(0, 0);
+		expect(editor.selectedCell).toEqual({ x: 0, y: 0 });
+		expect(editor.editingObjectId).toBeNull();
+	});
+
+	it('moves an object and saves edited property values for export', () => {
+		const editor = new EditorState();
+		editor.addObjectAttribute('door', 'locked', 'boolean');
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+
+		expect(
+			editor.updateObject(object.id, {
+				x: 4,
+				y: 5,
+				properties: { ...object.properties, locked: true }
+			})
+		).toBe(true);
+		expect(object.x).toBe(4);
+		expect(object.y).toBe(5);
+
+		const exported = JSON.parse(mapToJson(editor.map)) as {
+			objects: { x: number; y: number; properties: Record<string, unknown> }[];
+		};
+		expect(exported.objects[0]).toMatchObject({ x: 4, y: 5, properties: { locked: true } });
+	});
+
+	it('rejects positions outside the map or already taken by the same type', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		placeDoor(editor, 2, 2);
+		const [first, second] = editor.map.objects;
+
+		expect(editor.updateObject(first.id, { x: -1, y: 0 })).toBe(false);
+		expect(editor.updateObject(first.id, { x: second.x, y: second.y })).toBe(false);
+		expect(first).toMatchObject({ x: 1, y: 1 });
+	});
+});
+
+describe('object attributes', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	function placeDoor(editor: EditorState) {
+		editor.selectObjectType('door');
+		editor.placeObjectLine({ x: 1, y: 1 }, { x: 1, y: 1 });
+		return editor.map.objects[0];
+	}
+
+	it('gives placed objects the declared attributes and exports them as properties', () => {
+		const editor = new EditorState();
+		expect(editor.addObjectAttribute('door', 'locked', 'boolean')).toBe(true);
+
+		const object = placeDoor(editor);
+
+		expect(object.properties).toEqual({ locked: false });
+		const exported = JSON.parse(mapToJson(editor.map)) as {
+			objects: { properties: Record<string, unknown> }[];
+		};
+		expect(exported.objects[0].properties).toEqual({ locked: false });
+	});
+
+	it('updates properties on already placed objects when attributes change', () => {
+		const editor = new EditorState();
+		const object = placeDoor(editor);
+
+		editor.addObjectAttribute('door', 'locked', 'boolean');
+		editor.renameObjectAttribute('door', 'locked', 'sealed');
+		editor.setObjectAttributeType('door', 'sealed', 'string');
+		expect(object.properties).toEqual({ sealed: '' });
+
+		editor.removeObjectAttribute('door', 'sealed');
+		expect(object.properties).toEqual({});
+	});
+
+	it('rejects duplicate attribute names', () => {
+		const editor = new EditorState();
+		expect(editor.addObjectAttribute('door', 'locked', 'boolean')).toBe(true);
+		expect(editor.addObjectAttribute('door', 'locked', 'string')).toBe(false);
+		expect(editor.objectTypes.find((type) => type.id === 'door')?.attributes).toEqual([
+			{ name: 'locked', type: 'boolean' }
+		]);
+	});
+
+	it('infers attribute declarations from an imported map', () => {
+		vi.stubGlobal('window', { localStorage: memoryStorage() });
+		const editor = new EditorState();
+		editor.addObjectAttribute('door', 'locked', 'boolean');
+		placeDoor(editor);
+		editor.flushPendingSave();
+
+		const reloaded = new EditorState();
+
+		expect(reloaded.objectTypes.find((type) => type.id === 'door')?.attributes).toEqual([
+			{ name: 'locked', type: 'boolean' }
+		]);
+	});
+});
+
 describe('map schema', () => {
 	afterEach(() => {
 		vi.unstubAllGlobals();

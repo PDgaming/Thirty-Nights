@@ -88,104 +88,98 @@
 	}
 </script>
 
-<section class="border-b" style="border-color: var(--border)">
-	<div class="panel-title">
-		<span>Map</span>
-		<span class="mono text-[10px]" style="color: var(--text-faint)">{editor.map.id}</span>
-	</div>
-	<div class="panel-body flex flex-col">
-		<div class="grid grid-cols-2 gap-2">
-			<label class="col-span-1">
-				<span class="field-label">Map ID</span>
-				<input
-					class="field"
-					value={editor.map.id}
-					onchange={(event) => commitText('id', event.currentTarget.value)}
-					onkeydown={enterBlur}
-				/>
-			</label>
-			<label class="col-span-1">
-				<span class="field-label">Tile size</span>
-				<input
-					class="field"
-					type="number"
-					use:wheelNumber
-					min="1"
-					value={editor.map.tile_size}
-					onchange={commitTileSize}
-					onkeydown={enterBlur}
-				/>
-			</label>
-		</div>
-
-		<label>
-			<span class="field-label">Map name</span>
+<div class="panel-body flex flex-col">
+	<div class="grid grid-cols-2 gap-2">
+		<label class="col-span-1">
+			<span class="field-label">Map ID</span>
 			<input
 				class="field"
-				value={editor.map.name}
-				onchange={(event) => commitText('name', event.currentTarget.value)}
+				value={editor.map.id}
+				onchange={(event) => commitText('id', event.currentTarget.value)}
 				onkeydown={enterBlur}
 			/>
 		</label>
-
-		<div class="grid grid-cols-2 gap-2">
-			<label>
-				<span class="field-label">Width (cells)</span>
-				<input
-					class="field"
-					type="number"
-					use:wheelNumber
-					min="1"
-					value={widthDraft}
-					oninput={(event) => (widthDraft = event.currentTarget.value)}
-					onchange={applyDimension}
-					onkeydown={enterBlur}
-				/>
-			</label>
-			<label>
-				<span class="field-label">Height (cells)</span>
-				<input
-					class="field"
-					type="number"
-					use:wheelNumber
-					min="1"
-					value={heightDraft}
-					oninput={(event) => (heightDraft = event.currentTarget.value)}
-					onchange={applyDimension}
-					onkeydown={enterBlur}
-				/>
-			</label>
-		</div>
-
-		<div class="grid grid-cols-2 gap-2">
-			<label>
-				<span class="field-label">Spawn X</span>
-				<input
-					class="field"
-					type="number"
-					use:wheelNumber
-					min="0"
-					max={editor.map.width - 1}
-					value={editor.map.spawn.x}
-					style={spawnValid ? '' : 'border-color: var(--danger)'}
-					onchange={(event) => commitSpawn('x', event)}
-					onkeydown={enterBlur}
-				/>
-			</label>
-			<label>
-				<span class="field-label">Spawn Y</span>
-				<input
-					class="field"
-					type="number"
-					use:wheelNumber
-					min="0"
-					max={editor.map.height - 1}
-					value={editor.map.spawn.y}
-					style={spawnValid ? '' : 'border-color: var(--danger)'}
-					onchange={(event) => commitSpawn('y', event)}
-					onkeydown={enterBlur}
-				/>
-			</label>
-		</div>
+		<label class="col-span-1">
+			<span class="field-label">Tile size</span>
+			<input
+				class="field"
+				type="number"
+				use:wheelNumber
+				min="1"
+				value={editor.map.tile_size}
+				onchange={commitTileSize}
+				onkeydown={enterBlur}
+			/>
+		</label>
 	</div>
-</section>
+
+	<label>
+		<span class="field-label">Map name</span>
+		<input
+			class="field"
+			value={editor.map.name}
+			onchange={(event) => commitText('name', event.currentTarget.value)}
+			onkeydown={enterBlur}
+		/>
+	</label>
+
+	<div class="grid grid-cols-2 gap-2">
+		<label>
+			<span class="field-label">Width (cells)</span>
+			<input
+				class="field"
+				type="number"
+				use:wheelNumber
+				min="1"
+				value={widthDraft}
+				oninput={(event) => (widthDraft = event.currentTarget.value)}
+				onchange={applyDimension}
+				onkeydown={enterBlur}
+			/>
+		</label>
+		<label>
+			<span class="field-label">Height (cells)</span>
+			<input
+				class="field"
+				type="number"
+				use:wheelNumber
+				min="1"
+				value={heightDraft}
+				oninput={(event) => (heightDraft = event.currentTarget.value)}
+				onchange={applyDimension}
+				onkeydown={enterBlur}
+			/>
+		</label>
+	</div>
+
+	<div class="grid grid-cols-2 gap-2">
+		<label>
+			<span class="field-label">Spawn X</span>
+			<input
+				class="field"
+				type="number"
+				use:wheelNumber
+				min="0"
+				max={editor.map.width - 1}
+				value={editor.map.spawn.x}
+				style={spawnValid ? '' : 'border-color: var(--danger)'}
+				onchange={(event) => commitSpawn('x', event)}
+				onkeydown={enterBlur}
+			/>
+		</label>
+		<label>
+			<span class="field-label">Spawn Y</span>
+			<input
+				class="field"
+				type="number"
+				use:wheelNumber
+				min="0"
+				max={editor.map.height - 1}
+				value={editor.map.spawn.y}
+				style={spawnValid ? '' : 'border-color: var(--danger)'}
+				onchange={(event) => commitSpawn('y', event)}
+				onkeydown={enterBlur}
+			/>
+		</label>
+	</div>
+</div>

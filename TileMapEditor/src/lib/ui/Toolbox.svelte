@@ -13,6 +13,12 @@
 		icon: (typeof icons)[keyof typeof icons];
 	}[] = [
 		{
+			id: 'select',
+			label: 'Select',
+			hint: 'Select a cell and inspect its object (V)',
+			icon: icons.mousePointer
+		},
+		{
 			id: 'paint',
 			label: 'Paint',
 			hint: 'Paint with the selected tile (B)',
