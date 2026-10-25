@@ -95,7 +95,7 @@
 </script>
 
 <div class="menubar" bind:this={root}>
-	<span class="menubar-brand">Thirty Nights</span>
+	<span class="menubar-brand">Tile Map Editor</span>
 
 	<input
 		bind:this={mapInput}
