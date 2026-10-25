@@ -37,12 +37,6 @@ type Rectangle struct {
 	Height int `json:"height"`
 }
 
-type RoomData struct {
-	ID     string    `json:"id"`
-	Name   string    `json:"name"`
-	Bounds Rectangle `json:"bounds"`
-}
-
 type ObjectData struct {
 	ID         string         `json:"id"`
 	Type       string         `json:"type"`
@@ -89,8 +83,6 @@ type MapData struct {
 
 	Layers     []LayerData           `json:"layers"`
 	LayersByID map[string]*LayerData `json:"-"`
-
-	Rooms []RoomData `json:"rooms"`
 
 	Objects     []ObjectData          `json:"objects"`
 	ObjectsByID map[string]ObjectType `json:"-"`

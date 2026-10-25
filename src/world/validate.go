@@ -24,14 +24,8 @@ func ValidateMap(m MapData) error {
 		return err
 	}
 
-	var roomIDs = make(map[string]bool)
-	err = ValidateRoomProperties(m.Rooms, m.Width, m.Height, roomIDs)
-	if err != nil {
-		return err
-	}
-
 	var objectIDs = make(map[string]bool)
-	err = ValidateObjectProperties(m.Objects, m.Height, m.Width, roomIDs, objectIDs)
+	err = ValidateObjectProperties(m.Objects, m.Height, m.Width, objectIDs)
 	if err != nil {
 		return err
 	}
@@ -112,33 +106,8 @@ func ValidateLayerProperties(layers []LayerData, height, width int, tiles map[st
 	}
 	return nil
 }
-func ValidateRoomProperties(rooms []RoomData, width, height int, roomIDs map[string]bool) error {
-	for _, room := range rooms {
-		if room.ID == "" {
-			return fmt.Errorf("room must have an ID")
-		}
-		if roomIDs[room.ID] {
-			return fmt.Errorf("duplicate room ID: %s", room.ID)
-		}
-		roomIDs[room.ID] = true
 
-		if room.Name == "" {
-			return fmt.Errorf("room must have a name")
-		}
-
-		if room.Bounds.X <= 0 || room.Bounds.Y <= 0 {
-			return fmt.Errorf("room bounds x and y must be less than 0")
-		}
-		if room.Bounds.Width <= 0 || room.Bounds.Height <= 0 {
-			return fmt.Errorf("room bounds width and height must be greater than 0")
-		}
-		if room.Bounds.X+room.Bounds.Width > width || room.Bounds.Y+room.Bounds.Height > height {
-			return fmt.Errorf("room bounds x and y must be less than the map width and height")
-		}
-	}
-	return nil
-}
-func ValidateObjectProperties(objects []ObjectData, height, width int, roomIDs map[string]bool, objectIDs map[string]bool) error {
+func ValidateObjectProperties(objects []ObjectData, height, width int, objectIDs map[string]bool) error {
 	for _, object := range objects {
 		if object.ID == "" {
 			return fmt.Errorf("object must have an ID")
@@ -161,17 +130,6 @@ func ValidateObjectProperties(objects []ObjectData, height, width int, roomIDs m
 		}
 		if object.Y < 0 || object.Y >= height {
 			return fmt.Errorf("object y must be greater than 0 and less than or equal to map height")
-		}
-
-		if _, ok := object.Properties["room_id"]; !ok {
-			continue
-		}
-		if _, ok := object.Properties["room_id"].(string); !ok {
-			return fmt.Errorf("object room id must be a string")
-		}
-
-		if _, ok := roomIDs[object.Properties["room_id"].(string)]; !ok {
-			return fmt.Errorf("object must have a room ID")
 		}
 	}
 	return nil

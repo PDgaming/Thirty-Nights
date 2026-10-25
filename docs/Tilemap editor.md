@@ -102,6 +102,7 @@ The workspace displays the map as a two-dimensional grid of cells.
 - Clicking and dragging should support continuous painting across cells.
 - The user should be able to erase a cell or restore it to the layer's empty state.
 - Painting should respect layer visibility, selection, and any relevant editing restrictions.
+- **Ctrl+Z** (or **Cmd+Z**) should undo the last edit and **Ctrl+Y** (or **Cmd+Y**) should redo it. A paint or object drag counts as one step.
 
 **Zoom and navigation**
 
@@ -158,7 +159,7 @@ Users should be able to configure:
 - Source tile width.
 - Source tile height.
 - Optional spacing between tiles.
-- Optional margin around the tileset image.
+- Optional margin around the tileset image, configurable separately for the x and y axes.
 
 The editor should calculate the number of available tiles from the image dimensions and slicing configuration.
 
@@ -322,7 +323,7 @@ Keep the map model separate from transient editor state. Transient state include
 
 Map mutations should go through dedicated operations so that painting, erasing, resizing, and layer changes remain consistent.
 
-Undo and redo should be designed around map operations, but can be deferred until the basic editing workflow works reliably.
+Undo snapshots the map and editor-side tile bindings before each committed operation. Drag strokes are grouped into a single step. Redo replays undone snapshots and is discarded when a new edit is made.
 
 ### 6.6 Dependencies
 
@@ -359,7 +360,6 @@ The initial release should focus on the complete core workflow:
 
 Potential extensions include:
 
-- Undo and redo.
 - Save and reopen editable projects.
 - Keyboard shortcuts.
 - Tile search and filtering.
