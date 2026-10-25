@@ -14,7 +14,8 @@ function config(overrides: Partial<TilesetConfig> = {}): TilesetConfig {
 		tileWidth: 16,
 		tileHeight: 16,
 		spacing: 0,
-		margin: 0,
+		marginX: 0,
+		marginY: 0,
 		...overrides
 	};
 }
@@ -26,9 +27,16 @@ describe('computeTilesetGrid', () => {
 
 	it('accounts for margin and spacing', () => {
 		const grid = computeTilesetGrid(
-			config({ imageWidth: 70, imageHeight: 38, spacing: 2, margin: 2 })
+			config({ imageWidth: 70, imageHeight: 38, spacing: 2, marginX: 2, marginY: 2 })
 		);
 		expect(grid).toEqual({ columns: 3, rows: 2 });
+	});
+
+	it('accounts for different x and y margins', () => {
+		const grid = computeTilesetGrid(
+			config({ imageWidth: 70, imageHeight: 38, spacing: 2, marginX: 2, marginY: 4 })
+		);
+		expect(grid).toEqual({ columns: 3, rows: 1 });
 	});
 
 	it('returns no tiles when the image is too small', () => {
@@ -41,6 +49,8 @@ describe('computeTilesetGrid', () => {
 	it('rejects invalid dimensions', () => {
 		expect(computeTilesetGrid(config({ tileWidth: 0 }))).toEqual({ columns: 0, rows: 0 });
 		expect(computeTilesetGrid(config({ spacing: -1 }))).toEqual({ columns: 0, rows: 0 });
+		expect(computeTilesetGrid(config({ marginX: -1 }))).toEqual({ columns: 0, rows: 0 });
+		expect(computeTilesetGrid(config({ marginY: -1 }))).toEqual({ columns: 0, rows: 0 });
 	});
 });
 
@@ -56,11 +66,20 @@ describe('computeTilesetSlices', () => {
 
 	it('offsets slices by margin and spacing', () => {
 		const slices = computeTilesetSlices(
-			config({ imageWidth: 70, imageHeight: 38, spacing: 2, margin: 2 })
+			config({ imageWidth: 70, imageHeight: 38, spacing: 2, marginX: 2, marginY: 2 })
 		);
 		expect(slices[0]).toMatchObject({ sx: 2, sy: 2 });
 		expect(slices[1]).toMatchObject({ sx: 20, sy: 2 });
 		expect(slices[3]).toMatchObject({ sx: 2, sy: 20 });
+	});
+
+	it('offsets slices by different x and y margins', () => {
+		const slices = computeTilesetSlices(
+			config({ imageWidth: 70, imageHeight: 46, spacing: 2, marginX: 4, marginY: 6 })
+		);
+		expect(slices[0]).toMatchObject({ sx: 4, sy: 6 });
+		expect(slices[1]).toMatchObject({ sx: 22, sy: 6 });
+		expect(slices[3]).toMatchObject({ sx: 4, sy: 24 });
 	});
 });
 
@@ -75,10 +94,17 @@ describe('slice hit testing', () => {
 	});
 
 	it('ignores spacing and margin gaps', () => {
-		const spaced = config({ imageWidth: 70, imageHeight: 38, spacing: 2, margin: 2 });
+		const spaced = config({ imageWidth: 70, imageHeight: 38, spacing: 2, marginX: 2, marginY: 2 });
 		expect(sliceIndexAtPoint(spaced, 18, 2)).toBeNull();
 		expect(sliceIndexAtPoint(spaced, 2, 2)).toBe(0);
 		expect(sliceIndexAtPoint(spaced, 1, 1)).toBeNull();
+	});
+
+	it('ignores asymmetric margin gaps', () => {
+		const spaced = config({ imageWidth: 70, imageHeight: 38, spacing: 2, marginX: 4, marginY: 6 });
+		expect(sliceIndexAtPoint(spaced, 4, 6)).toBe(0);
+		expect(sliceIndexAtPoint(spaced, 3, 6)).toBeNull();
+		expect(sliceIndexAtPoint(spaced, 4, 5)).toBeNull();
 	});
 
 	it('finds slices from applied geometry', () => {

@@ -80,54 +80,43 @@ describe('validateMap', () => {
 		expect(messages(map).join('|')).toContain('spawn (9, 0)');
 	});
 
-	it('validates rooms the way the Go loader does', () => {
+	it('validates object IDs, layers, and bounds', () => {
 		const map = validMap();
-		map.rooms = [
-			{ id: 'r1', name: 'Room', bounds: { x: 0, y: 1, width: 1, height: 1 } },
-			{ id: 'r1', name: '', bounds: { x: 1, y: 1, width: 10, height: 1 } }
-		];
-		const text = messages(map).join('|');
-		expect(text).toContain('greater than 0');
-		expect(text).toContain('duplicate room ID');
-		expect(text).toContain('room name');
-		expect(text).toContain('fit inside');
-	});
-
-	it('validates object IDs, types, layers, and room references', () => {
-		const map = validMap();
-		map.rooms = [{ id: 'r1', name: 'Room', bounds: { x: 1, y: 1, width: 1, height: 1 } }];
 		map.objects = [
 			{
-				id: 'door-1',
-				type: 'portal',
+				id: 'chest-1',
+				type: 'chest',
 				layer: 'nope',
 				x: 9,
 				y: 0,
-				properties: { room_id: 'missing' }
+				properties: {}
 			}
 		];
 		const text = messages(map).join('|');
-		expect(text).toContain('unsupported object type');
-		expect(text).toContain('must also exist as a tile');
 		expect(text).toContain('undefined layer');
 		expect(text).toContain('must be inside the map');
-		expect(text).toContain('undefined room');
+	});
+
+	it('warns about types the game loader does not handle, without blocking export', () => {
+		const map = validMap();
+		map.objects = [{ id: 'chest-1', type: 'chest', layer: 'floor', x: 1, y: 1, properties: {} }];
+		const issues = validateMap(map);
+		expect(issues.some((issue) => issue.message.includes('does not handle object type'))).toBe(
+			true
+		);
+		expect(hasBlockingErrors(issues)).toBe(false);
+	});
+
+	it('requires a door object to have a door tile definition', () => {
+		const map = validMap();
+		map.objects = [{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 1, properties: {} }];
+		expect(messages(map).join('|')).toContain('must also exist as a tile definition');
 	});
 
 	it('accepts a door object when the door tile exists', () => {
 		const map = validMap();
 		map.tiles.door = createTileDef('#9A7047', true);
-		map.objects = [
-			{
-				id: 'door-1',
-				type: 'door',
-				layer: 'floor',
-				x: 2,
-				y: 1,
-				properties: { room_id: 'r1' }
-			}
-		];
-		map.rooms = [{ id: 'r1', name: 'Room', bounds: { x: 1, y: 1, width: 1, height: 1 } }];
+		map.objects = [{ id: 'door-1', type: 'door', layer: 'floor', x: 2, y: 1, properties: {} }];
 		expect(hasBlockingErrors(validateMap(map))).toBe(false);
 	});
 

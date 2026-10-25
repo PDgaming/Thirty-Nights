@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { EditorState } from '#lib/editor-state.svelte';
 	import { isValidHexColor } from '#lib/map-validation';
+	import Icon from '@iconify/svelte';
+	import { tick } from 'svelte';
+	import { icons } from './icons';
 	import TilePreview from './TilePreview.svelte';
 
 	let { editor }: { editor: EditorState } = $props();
@@ -9,13 +12,12 @@
 	let colorDraft = $state('#7a828c');
 	let newTileId = $state('');
 	let newTileColor = $state('#7a828c');
+	let addTileOpen = $state(false);
+	let newTileInput: HTMLInputElement | undefined = $state();
 
 	const tile = $derived(editor.activeTile);
 	const metadata = $derived(editor.activeTileId);
-	const slice = $derived(editor.sliceForActiveTile);
-	const references = $derived(
-		editor.activeTileId ? editor.tileReferenceCount(editor.activeTileId) : 0
-	);
+	const tiles = $derived(Object.entries(editor.map.tiles));
 
 	$effect(() => {
 		const currentID = editor.activeTileId;
@@ -52,6 +54,15 @@
 	function addTile() {
 		if (editor.addTileDefinition(newTileId, newTileColor)) {
 			newTileId = '';
+			addTileOpen = false;
+		}
+	}
+
+	async function toggleAddTile() {
+		addTileOpen = !addTileOpen;
+		if (addTileOpen) {
+			await tick();
+			newTileInput?.focus();
 		}
 	}
 
@@ -68,7 +79,7 @@
 		{/if}
 	</div>
 
-	<div class="panel-body">
+	<div class="panel-body flex flex-col">
 		{#if tile && metadata}
 			<div class="flex items-start gap-3">
 				<div class="checkerboard shrink-0 rounded-sm p-1">
@@ -105,86 +116,125 @@
 					</label>
 				</div>
 			</div>
-
-			<label
-				class="flex cursor-pointer items-center justify-between rounded border px-2.5 py-2"
-				style="border-color: var(--border); background: #0d1014"
-			>
-				<span>
-					<span class="block text-[11.5px] font-semibold">Solid</span>
-					<span class="block text-[10px]" style="color: var(--text-faint)"
-						>Blocks movement on collision layers</span
-					>
-				</span>
-				<input
-					type="checkbox"
-					class="toggle"
-					checked={tile.solid}
-					onchange={(event) => editor.setTileSolid(metadata, event.currentTarget.checked)}
-				/>
-			</label>
-
-			<div
-				class="rounded border px-2.5 py-2 text-[10px] leading-4"
-				style="border-color: var(--border)"
-			>
-				<div class="flex justify-between gap-3">
-					<span style="color: var(--text-faint)">Source tile</span>
-					<span class="mono" style="color: var(--text-dim)">
-						{#if slice}
-							{slice.sx},{slice.sy} · {slice.sw}×{slice.sh}
-						{:else}
-							none
-						{/if}
+			<div class="flex items-center gap-2">
+				<label
+					class="flex flex-1 cursor-pointer items-center justify-between rounded border px-2.5 py-2"
+					style="border-color: var(--border); background: #222222"
+				>
+					<span>
+						<span class="block text-[11.5px] font-semibold">Solid</span>
 					</span>
-				</div>
-				<div class="flex justify-between gap-3">
-					<span style="color: var(--text-faint)">Map cells</span>
-					<span class="mono" style="color: var(--text-dim)">{references}</span>
-				</div>
+					<input
+						type="checkbox"
+						class="toggle"
+						checked={tile.solid}
+						onchange={(event) => editor.setTileSolid(metadata, event.currentTarget.checked)}
+					/>
+				</label>
 			</div>
-
-			<button
-				class="btn btn-danger w-full"
-				onclick={() => {
-					if (window.confirm(`Delete tile "${metadata}"?`)) editor.deleteActiveTile();
-				}}
-			>
-				Delete tile
-			</button>
-			<p class="text-[10px] leading-4" style="color: var(--text-faint)">
-				The game renders tiles from <span class="mono">visual.color</span>; the tileset image is an
-				editor reference only.
-			</p>
 		{:else}
 			<div
 				class="rounded border border-dashed px-3 py-5 text-center text-[11px]"
 				style="border-color: var(--border-strong); color: var(--text-faint)"
 			>
-				Select a tile from the tileset or the grid to inspect it.
+				Select a tile from the palette below or the tileset to inspect it.
 			</div>
 		{/if}
 
 		<div class="divider"></div>
 
 		<div>
-			<div class="field-label">Add tile definition</div>
-			<div class="flex items-center gap-1.5">
-				<input
-					class="field-sm mono min-w-0 flex-1"
-					placeholder="tile_id"
-					value={newTileId}
-					oninput={(event) => (newTileId = event.currentTarget.value)}
-					onkeydown={(event) => {
-						if (event.key === 'Enter') addTile();
-					}}
-				/>
-				<input type="color" bind:value={newTileColor} title="New tile colour" />
-				<button class="btn btn-xs" onclick={addTile} disabled={newTileId.trim() === ''}>Add</button>
+			<div class="mb-2 flex items-center justify-between">
+				<span class="field-label" style="margin: 0">Tile palette</span>
+				<div class="flex items-center gap-1">
+					<span class="badge">{tiles.length}</span>
+					<button
+						class="icon-btn"
+						class:active={addTileOpen}
+						onclick={toggleAddTile}
+						aria-expanded={addTileOpen}
+						aria-label="Toggle new tile form"
+						title={addTileOpen ? 'Hide new tile form' : 'New tile'}
+					>
+						<Icon icon={icons.plus} width="13" height="13" />
+					</button>
+				</div>
 			</div>
-			<p class="mt-1.5 text-[10px] leading-4" style="color: var(--text-faint)">
-				Use this for colour-only tiles that are not tied to a tileset slice.
-			</p>
+			{#if tiles.length === 0}
+				<p class="text-[10.5px] leading-4" style="color: var(--text-faint)">
+					No tiles yet. Add one with the + button or slice a tileset.
+				</p>
+			{:else}
+				<div class="max-h-56 space-y-1 overflow-y-auto pr-0.5">
+					{#each tiles as [id, def] (id)}
+						{@const cellCount = editor.tileReferenceCount(id)}
+						{@const usedByObject = editor.tileIsUsedByObject(id)}
+						{@const blocked = cellCount > 0 || usedByObject}
+						<div class="tile-row" class:active={id === editor.activeTileId}>
+							<button
+								class="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+								onclick={() => editor.selectTile(id)}
+								title="Paint with {id}"
+							>
+								<span
+									class="h-4 w-4 shrink-0 rounded-sm border"
+									style="background: {def.visual.color}; border-color: var(--border-strong)"
+								></span>
+								<span class="mono min-w-0 flex-1 truncate">{id}</span>
+								{#if def.solid}
+									<span class="badge badge-warn shrink-0">solid</span>
+								{/if}
+							</button>
+							<button
+								class="icon-btn tile-delete shrink-0 disabled:cursor-not-allowed disabled:opacity-30"
+								disabled={blocked}
+								title={cellCount > 0
+									? `Used by ${cellCount} map cell${cellCount === 1 ? '' : 's'}`
+									: usedByObject
+										? 'Used by an object type'
+										: `Delete tile "${id}"`}
+								onclick={() => {
+									if (window.confirm(`Delete tile "${id}"?`)) editor.deleteTile(id);
+								}}
+							>
+								<Icon icon={icons.trash} width="13" height="13" />
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
 		</div>
+
+		{#if addTileOpen}
+			<div class="divider"></div>
+
+			<div>
+				<div class="field-label">Add tile definition</div>
+				<div class="flex items-center gap-1.5">
+					<input
+						bind:this={newTileInput}
+						class="field-sm mono min-w-0 flex-1"
+						placeholder="tile_id"
+						value={newTileId}
+						oninput={(event) => (newTileId = event.currentTarget.value)}
+						onkeydown={(event) => {
+							if (event.key === 'Enter') addTile();
+							if (event.key === 'Escape') addTileOpen = false;
+						}}
+					/>
+					<input type="color" bind:value={newTileColor} title="New tile colour" />
+					<button class="btn btn-xs" onclick={addTile} disabled={newTileId.trim() === ''}>
+						Add
+					</button>
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>
+
+<style>
+	.tile-delete:hover:not(:disabled) {
+		color: var(--danger);
+		background: rgba(248, 113, 113, 0.12);
+	}
+</style>

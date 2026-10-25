@@ -5,6 +5,8 @@
 
 	let { editor }: { editor: EditorState } = $props();
 
+	const PREVIEW_HEIGHT = 160;
+
 	let wrapper: HTMLDivElement | undefined = $state();
 	let canvas: HTMLCanvasElement | undefined = $state();
 	let width = $state(0);
@@ -13,11 +15,14 @@
 	const image = $derived(editor.tileset.image);
 	const slices = $derived(editor.tilesetSlices);
 	const selectedIndex = $derived(editor.sliceForActiveTile?.index ?? -1);
-	const displayHeight = $derived(
-		image && width > 0
-			? Math.max(1, Math.round((width * image.naturalHeight) / image.naturalWidth))
-			: 0
-	);
+	const display = $derived.by(() => {
+		if (!image || width <= 0) return { width: 0, height: 0 };
+		const scale = Math.min(width / image.naturalWidth, PREVIEW_HEIGHT / image.naturalHeight);
+		return {
+			width: Math.max(1, Math.round(image.naturalWidth * scale)),
+			height: Math.max(1, Math.round(image.naturalHeight * scale))
+		};
+	});
 
 	onMount(() => {
 		const element = wrapper;
@@ -38,17 +43,15 @@
 		const currentSlices = slices;
 		const currentSelected = selectedIndex;
 		const currentHovered = hovered;
-		const drawWidth = width;
+		const drawWidth = display.width;
+		const drawHeight = display.height;
 
-		if (!element || !currentImage || drawWidth <= 0) return;
+		if (!element || !currentImage || drawWidth <= 0 || drawHeight <= 0) return;
 
-		const drawHeight = Math.max(
-			1,
-			Math.round((drawWidth * currentImage.naturalHeight) / currentImage.naturalWidth)
-		);
 		const dpr = window.devicePixelRatio || 1;
 		element.width = Math.round(drawWidth * dpr);
 		element.height = Math.round(drawHeight * dpr);
+		element.style.width = `${drawWidth}px`;
 		element.style.height = `${drawHeight}px`;
 
 		const ctx = element.getContext('2d');
@@ -70,9 +73,9 @@
 			const h = slice.sh * scaleY;
 
 			if (slice.index === currentSelected) {
-				ctx.fillStyle = 'rgba(94, 234, 212, 0.18)';
+				ctx.fillStyle = 'rgba(111, 159, 216, 0.22)';
 				ctx.fillRect(x, y, w, h);
-				ctx.strokeStyle = '#5eead4';
+				ctx.strokeStyle = '#6f9fd8';
 				ctx.lineWidth = 2;
 				ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
 				ctx.lineWidth = 1;
@@ -132,12 +135,16 @@
 	}
 </script>
 
-<div bind:this={wrapper} class="w-full">
+<div
+	bind:this={wrapper}
+	class="flex w-full items-center justify-center"
+	style="height: {PREVIEW_HEIGHT}px"
+>
 	{#if image && width > 0}
 		<canvas
 			bind:this={canvas}
-			class="checkerboard block w-full cursor-crosshair rounded-sm"
-			style="image-rendering: pixelated; height: {displayHeight}px"
+			class="checkerboard block shrink-0 cursor-crosshair rounded-sm"
+			style="image-rendering: pixelated; width: {display.width}px; height: {display.height}px"
 			onmousemove={handleMove}
 			onmouseleave={() => (hovered = null)}
 			onclick={handleClick}
@@ -148,11 +155,11 @@
 		></canvas>
 	{:else}
 		<div
-			class="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-sm border border-dashed text-center"
+			class="flex h-full w-full flex-col items-center justify-center gap-2 rounded-sm border border-dashed text-center"
 			style="border-color: var(--border-strong); color: var(--text-faint)"
 		>
 			<span class="text-[11px]">No tileset imported</span>
-			<span class="px-6 text-[10px] leading-4">Import a PNG or JPEG, then slice it below.</span>
+			<span class="px-6 text-[10.5px] leading-4">Import a PNG or JPEG, then slice it below.</span>
 		</div>
 	{/if}
 </div>

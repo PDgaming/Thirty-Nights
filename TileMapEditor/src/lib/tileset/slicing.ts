@@ -4,7 +4,8 @@ export interface TilesetConfig {
 	tileWidth: number;
 	tileHeight: number;
 	spacing: number;
-	margin: number;
+	marginX: number;
+	marginY: number;
 }
 
 export interface TilesetSlice {
@@ -25,7 +26,7 @@ export const MAX_TILESET_SLICES = 4096;
  * tiles, and no trailing spacing required after the last tile.
  */
 export function computeTilesetGrid(config: TilesetConfig): { columns: number; rows: number } {
-	const { imageWidth, imageHeight, tileWidth, tileHeight, spacing, margin } = config;
+	const { imageWidth, imageHeight, tileWidth, tileHeight, spacing, marginX, marginY } = config;
 
 	if (
 		![imageWidth, imageHeight, tileWidth, tileHeight].every((value) => Number.isFinite(value)) ||
@@ -34,13 +35,14 @@ export function computeTilesetGrid(config: TilesetConfig): { columns: number; ro
 		tileWidth <= 0 ||
 		tileHeight <= 0 ||
 		spacing < 0 ||
-		margin < 0
+		marginX < 0 ||
+		marginY < 0
 	) {
 		return { columns: 0, rows: 0 };
 	}
 
-	const usableWidth = imageWidth - margin * 2;
-	const usableHeight = imageHeight - margin * 2;
+	const usableWidth = imageWidth - marginX * 2;
+	const usableHeight = imageHeight - marginY * 2;
 	if (usableWidth < tileWidth || usableHeight < tileHeight) {
 		return { columns: 0, rows: 0 };
 	}
@@ -61,8 +63,8 @@ export function computeTilesetSlices(config: TilesetConfig): TilesetSlice[] {
 				index: row * columns + column,
 				row,
 				column,
-				sx: config.margin + column * (config.tileWidth + config.spacing),
-				sy: config.margin + row * (config.tileHeight + config.spacing),
+				sx: config.marginX + column * (config.tileWidth + config.spacing),
+				sy: config.marginY + row * (config.tileHeight + config.spacing),
 				sw: config.tileWidth,
 				sh: config.tileHeight
 			});
@@ -91,8 +93,8 @@ export function sliceIndexAtPoint(config: TilesetConfig, x: number, y: number): 
 	const { columns, rows } = computeTilesetGrid(config);
 	if (columns === 0 || rows === 0) return null;
 
-	const localX = x - config.margin;
-	const localY = y - config.margin;
+	const localX = x - config.marginX;
+	const localY = y - config.marginY;
 	if (localX < 0 || localY < 0) return null;
 
 	const column = Math.floor(localX / (config.tileWidth + config.spacing));

@@ -27,18 +27,17 @@
 			<span class="badge badge-accent">Ready</span>
 		{/if}
 	</div>
-	<div class="panel-body">
+	<div class="panel-body flex flex-col">
 		<div class="flex flex-wrap gap-x-3 gap-y-1 text-[10.5px]" style="color: var(--text-faint)">
 			<span><span class="mono">{Object.keys(editor.map.tiles).length}</span> tiles</span>
 			<span><span class="mono">{editor.map.layers.length}</span> layers</span>
-			<span><span class="mono">{editor.map.rooms.length}</span> rooms</span>
 			<span><span class="mono">{editor.map.objects.length}</span> objects</span>
 		</div>
 
 		{#if issues.length > 0}
 			<div
 				class="max-h-52 overflow-y-auto rounded border"
-				style="border-color: var(--border); background: #0d1014"
+				style="border-color: var(--border); background: #222222"
 			>
 				<ul class="divide-y" style="border-color: var(--border)">
 					{#each issues as issue (issue.severity + issue.path + issue.message)}
@@ -48,7 +47,7 @@
 								style="background: {issue.severity === 'error' ? 'var(--danger)' : 'var(--warn)'}"
 							></span>
 							<div class="min-w-0">
-								<div class="mono text-[10px]" style="color: var(--text-faint)">{issue.path}</div>
+								<div class="mono text-[10.5px]" style="color: var(--text-faint)">{issue.path}</div>
 								<div style="color: var(--text-dim)">{issue.message}</div>
 							</div>
 						</li>
@@ -75,10 +74,6 @@
 		{#if !editor.canExport}
 			<p class="text-[10.5px] leading-4" style="color: var(--danger)">
 				Fix the validation errors above to enable export.
-			</p>
-		{:else}
-			<p class="text-[10.5px] leading-4" style="color: var(--text-faint)">
-				Downloads a map that loads directly through the game's Go map loader.
 			</p>
 		{/if}
 	</div>

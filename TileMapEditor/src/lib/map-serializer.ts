@@ -26,11 +26,6 @@ export function serializeMap(map: GameMap): GameMap {
 			collision: layer.collision,
 			grid: layer.grid.map((row) => [...row])
 		})),
-		rooms: map.rooms.map((room) => ({
-			id: room.id,
-			name: room.name,
-			bounds: { ...room.bounds }
-		})),
 		objects: map.objects.map((object) => ({
 			id: object.id,
 			type: object.type,

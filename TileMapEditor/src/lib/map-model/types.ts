@@ -1,6 +1,7 @@
 export const COLLISION_TYPES = ['none', 'tile', 'object'] as const;
 export type CollisionName = (typeof COLLISION_TYPES)[number];
 
+/** Object types the game loader can currently build. Other types export as warnings. */
 export const SUPPORTED_OBJECT_TYPES = ['door'] as const;
 export const FORMAT_VERSION = 1;
 
@@ -25,19 +26,6 @@ export interface LayerData {
 	collision: CollisionName;
 	/** Row-major grid: grid[y][x]. */
 	grid: Cell[][];
-}
-
-export interface Rectangle {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-}
-
-export interface RoomData {
-	id: string;
-	name: string;
-	bounds: Rectangle;
 }
 
 export interface ObjectData {
@@ -67,7 +55,6 @@ export interface GameMap {
 	height: number;
 	tiles: TileDefs;
 	layers: LayerData[];
-	rooms: RoomData[];
 	objects: ObjectData[];
 	spawn: Spawn;
 }

@@ -7,7 +7,6 @@ function map() {
 	result.tiles = { floor: createTileDef('#555B62'), door: createTileDef('#9A7047', true) };
 	result.layers = [createLayer('floor', 'none', 3, 2, 0)];
 	result.layers[0].grid[0][1] = 'floor';
-	result.rooms = [{ id: 'room-1', name: 'Cabin', bounds: { x: 1, y: 1, width: 1, height: 1 } }];
 	result.objects = [
 		{
 			id: 'door-1',
@@ -15,7 +14,7 @@ function map() {
 			layer: 'floor',
 			x: 1,
 			y: 0,
-			properties: { room_id: 'room-1', locked: false }
+			properties: { locked: false }
 		}
 	];
 	result.spawn = { x: 2, y: 1 };
@@ -34,13 +33,12 @@ describe('serializeMap', () => {
 			'height',
 			'tiles',
 			'layers',
-			'rooms',
 			'objects',
 			'spawn'
 		]);
 	});
 
-	it('preserves layer, room, object, and spawn shapes', () => {
+	it('preserves layer, object, and spawn shapes', () => {
 		const serialized = serializeMap(map());
 		expect(serialized.layers[0]).toEqual({
 			id: 'floor',
@@ -53,8 +51,7 @@ describe('serializeMap', () => {
 			]
 		});
 		expect(serialized.tiles.door).toEqual({ solid: true, visual: { color: '#9A7047' } });
-		expect(serialized.rooms[0].bounds).toEqual({ x: 1, y: 1, width: 1, height: 1 });
-		expect(serialized.objects[0].properties).toEqual({ room_id: 'room-1', locked: false });
+		expect(serialized.objects[0].properties).toEqual({ locked: false });
 		expect(serialized.spawn).toEqual({ x: 2, y: 1 });
 	});
 
@@ -71,6 +68,7 @@ describe('serializeMap', () => {
 		const parsed = JSON.parse(mapToJson(map()));
 		expect(parsed.id).toBe('deck-01');
 		expect(parsed.layers[0].grid[0][1]).toBe('floor');
+		expect(parsed.rooms).toBeUndefined();
 	});
 });
 

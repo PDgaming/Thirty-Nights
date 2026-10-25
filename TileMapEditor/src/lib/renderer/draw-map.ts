@@ -2,7 +2,7 @@ import type { GameMap } from '../map-model/types';
 import type { TilesetSlice } from '../tileset/slicing';
 import type { Viewport } from './viewport';
 
-export type EditorTool = 'paint' | 'erase' | 'spawn';
+export type EditorTool = 'paint' | 'erase' | 'object' | 'spawn';
 
 export interface TilesetRenderData {
 	image: HTMLImageElement | null;
@@ -23,17 +23,21 @@ export interface MapRenderOptions {
 	hover: { x: number; y: number } | null;
 	activeTileId: string | null;
 	activeLayerId: string | null;
+	activeObjectTypeId: string | null;
+	objectColors: Record<string, string>;
 	tool: EditorTool;
 }
 
-const BACKGROUND = '#0b0d10';
-const MAP_BACKGROUND = '#15181d';
-const MAP_BORDER = '#39414b';
-const GRID = 'rgba(255, 255, 255, 0.07)';
-const GRID_STRONG = 'rgba(255, 255, 255, 0.12)';
-const ACCENT = '#5eead4';
-const ERASE = '#f87171';
-const SPAWN = '#fbbf24';
+const BACKGROUND = '#171717';
+const MAP_BACKGROUND = '#2b2b2b';
+const MAP_BORDER = '#0f0f0f';
+const GRID = 'rgba(255, 255, 255, 0.05)';
+const GRID_STRONG = 'rgba(255, 255, 255, 0.11)';
+const ACCENT = '#6f9fd8';
+const ERASE = '#e07b72';
+const SPAWN = '#d9a441';
+const OBJECT = '#c98bb9';
+const OBJECT_INK = '#141414';
 
 export function drawMap(options: MapRenderOptions): void {
 	const { ctx, width, height, map, view } = options;
@@ -49,8 +53,15 @@ export function drawMap(options: MapRenderOptions): void {
 	const mapWidth = map.width * tilePx;
 	const mapHeight = map.height * tilePx;
 
+	// The map plate floats above the canvas bed, so artwork reads as separate
+	// from the chrome even when a layer is mostly empty.
+	ctx.save();
+	ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+	ctx.shadowBlur = 20;
+	ctx.shadowOffsetY = 6;
 	ctx.fillStyle = MAP_BACKGROUND;
 	ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
+	ctx.restore();
 
 	const startX = Math.max(0, Math.floor(-view.offsetX / tilePx));
 	const startY = Math.max(0, Math.floor(-view.offsetY / tilePx));
@@ -59,15 +70,21 @@ export function drawMap(options: MapRenderOptions): void {
 
 	if (endX >= startX && endY >= startY) {
 		drawLayers(options, startX, startY, endX, endY, tilePx);
-		if (options.showGrid && tilePx >= 9) {
-			drawGrid(options, startX, startY, endX, endY, tilePx);
+		if (options.showGrid) {
+			const gridAlpha = Math.min(1, Math.max(0, (tilePx - 7) / 18));
+			if (gridAlpha > 0.02) {
+				drawGrid(options, startX, startY, endX, endY, tilePx, gridAlpha);
+			}
 		}
 	}
 
 	ctx.strokeStyle = MAP_BORDER;
 	ctx.lineWidth = 1;
 	ctx.strokeRect(mapX + 0.5, mapY + 0.5, mapWidth - 1, mapHeight - 1);
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.045)';
+	ctx.strokeRect(mapX + 1.5, mapY + 1.5, mapWidth - 3, mapHeight - 3);
 
+	drawObjects(options, tilePx);
 	drawSpawn(options, tilePx);
 	drawHover(options, tilePx);
 }
@@ -151,10 +168,12 @@ function drawGrid(
 	startY: number,
 	endX: number,
 	endY: number,
-	tilePx: number
+	tilePx: number,
+	alpha: number
 ): void {
 	const { ctx, view } = options;
 	ctx.strokeStyle = tilePx >= 32 ? GRID_STRONG : GRID;
+	ctx.globalAlpha = alpha;
 	ctx.lineWidth = 1;
 	ctx.beginPath();
 	for (let x = startX; x <= endX + 1; x += 1) {
@@ -168,6 +187,44 @@ function drawGrid(
 		ctx.lineTo(view.offsetX + (endX + 1) * tilePx, py);
 	}
 	ctx.stroke();
+	ctx.globalAlpha = 1;
+}
+
+function drawObjects(options: MapRenderOptions, tilePx: number): void {
+	const { ctx, map, view, objectColors } = options;
+	for (const object of map.objects) {
+		const px = view.offsetX + object.x * tilePx;
+		const py = view.offsetY + object.y * tilePx;
+		drawObjectMarker(ctx, px, py, Math.ceil(tilePx), objectColors[object.type] ?? OBJECT, 0.92);
+	}
+}
+
+function drawObjectMarker(
+	ctx: CanvasRenderingContext2D,
+	px: number,
+	py: number,
+	size: number,
+	color: string,
+	alpha: number
+): void {
+	const cx = px + size / 2;
+	const cy = py + size / 2;
+	const radius = Math.max(3, Math.min(size * 0.3, 11));
+
+	ctx.save();
+	ctx.globalAlpha = alpha;
+	ctx.beginPath();
+	ctx.moveTo(cx, cy - radius);
+	ctx.lineTo(cx + radius, cy);
+	ctx.lineTo(cx, cy + radius);
+	ctx.lineTo(cx - radius, cy);
+	ctx.closePath();
+	ctx.fillStyle = color;
+	ctx.fill();
+	ctx.strokeStyle = OBJECT_INK;
+	ctx.lineWidth = 1.5;
+	ctx.stroke();
+	ctx.restore();
 }
 
 function drawSpawn(options: MapRenderOptions, tilePx: number): void {
@@ -178,7 +235,7 @@ function drawSpawn(options: MapRenderOptions, tilePx: number): void {
 
 	ctx.save();
 	ctx.strokeStyle = SPAWN;
-	ctx.fillStyle = 'rgba(251, 191, 36, 0.16)';
+	ctx.fillStyle = 'rgba(217, 164, 65, 0.16)';
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.arc(px, py, radius, 0, Math.PI * 2);
@@ -202,6 +259,8 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 		tool,
 		activeTileId,
 		activeLayerId,
+		activeObjectTypeId,
+		objectColors,
 		hiddenLayers,
 		showTilesetArt,
 		tileset
@@ -216,17 +275,25 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 
 	ctx.save();
 	if (tool === 'spawn') {
-		ctx.fillStyle = 'rgba(251, 191, 36, 0.2)';
+		ctx.fillStyle = 'rgba(217, 164, 65, 0.2)';
 		ctx.fillRect(px, py, drawWidth, drawHeight);
 		ctx.strokeStyle = SPAWN;
 		ctx.lineWidth = 2;
 		ctx.strokeRect(px + 1, py + 1, drawWidth - 2, drawHeight - 2);
 	} else if (tool === 'erase') {
-		ctx.fillStyle = 'rgba(248, 113, 113, 0.24)';
+		ctx.fillStyle = 'rgba(224, 123, 114, 0.24)';
 		ctx.fillRect(px, py, drawWidth, drawHeight);
 		ctx.strokeStyle = ERASE;
 		ctx.lineWidth = 1.5;
 		ctx.strokeRect(px + 0.5, py + 0.5, drawWidth - 1, drawHeight - 1);
+	} else if (tool === 'object') {
+		const color = activeObjectTypeId ? objectColors[activeObjectTypeId] : undefined;
+		ctx.strokeStyle = ACCENT;
+		ctx.lineWidth = 1.5;
+		ctx.strokeRect(px + 0.5, py + 0.5, drawWidth - 1, drawHeight - 1);
+		if (color) {
+			drawObjectMarker(ctx, px, py, drawWidth, color, 0.55);
+		}
 	} else if (activeTileId) {
 		const activeTile = map.tiles[activeTileId];
 		const activeLayerVisible = activeLayerId !== null && !hiddenLayers.includes(activeLayerId);

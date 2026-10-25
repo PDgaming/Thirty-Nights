@@ -1,4 +1,4 @@
-import type { GameMap, LayerData, ObjectData, RoomData, TileDefs } from './map-model/types';
+import type { GameMap, LayerData, ObjectData, TileDefs } from './map-model/types';
 import { COLLISION_TYPES, FORMAT_VERSION, SUPPORTED_OBJECT_TYPES } from './map-model/types';
 
 export type IssueSeverity = 'error' | 'warning';
@@ -76,8 +76,7 @@ export function validateMap(map: GameMap): ValidationIssue[] {
 	}
 
 	validateSpawn(map, error);
-	validateRooms(map, error);
-	validateObjects(map, error);
+	validateObjects(map, error, warning);
 
 	return issues;
 }
@@ -208,76 +207,22 @@ function validateSpawn(map: GameMap, error: (path: string, message: string) => v
 	}
 }
 
-function validateRooms(map: GameMap, error: (path: string, message: string) => void): void {
-	if (!Array.isArray(map.rooms)) {
-		error('rooms', 'rooms must be an array');
-		return;
-	}
-
-	const roomIDs = new Set<string>();
-	for (const [index, room] of map.rooms.entries()) {
-		const path = `rooms[${index}]`;
-		validateRoom(map, room, path, roomIDs, error);
-	}
-}
-
-function validateRoom(
+function validateObjects(
 	map: GameMap,
-	room: RoomData,
-	path: string,
-	roomIDs: Set<string>,
-	error: (path: string, message: string) => void
+	error: (path: string, message: string) => void,
+	warning: (path: string, message: string) => void
 ): void {
-	if (!isPlainObject(room)) {
-		error(path, 'room must be an object');
-		return;
-	}
-	if (typeof room.id !== 'string' || room.id.trim() === '') {
-		error(path + '.id', 'room ID is required');
-	} else if (roomIDs.has(room.id)) {
-		error(path + '.id', `duplicate room ID "${room.id}"`);
-	} else {
-		roomIDs.add(room.id);
-	}
-	if (typeof room.name !== 'string' || room.name.trim() === '') {
-		error(path + '.name', 'room name is required');
-	}
-	if (!isPlainObject(room.bounds)) {
-		error(path + '.bounds', 'room bounds must be an object');
-		return;
-	}
-
-	const { x, y, width, height } = room.bounds;
-	if (!Number.isInteger(x) || !Number.isInteger(y)) {
-		error(path + '.bounds', 'bounds x and y must be integers');
-		return;
-	}
-	// The Go validator requires x and y to be strictly greater than zero.
-	if (x <= 0 || y <= 0) {
-		error(path + '.bounds', 'bounds x and y must be greater than 0');
-	}
-	if (!isPositiveInteger(width) || !isPositiveInteger(height)) {
-		error(path + '.bounds', 'bounds width and height must be positive integers');
-		return;
-	}
-	if (x + width > map.width || y + height > map.height) {
-		error(path + '.bounds', 'room must fit inside the map bounds');
-	}
-}
-
-function validateObjects(map: GameMap, error: (path: string, message: string) => void): void {
 	if (!Array.isArray(map.objects)) {
 		error('objects', 'objects must be an array');
 		return;
 	}
 
 	const objectIDs = new Set<string>();
-	const roomIDs = new Set(map.rooms.map((room) => room.id));
 	const layerIDs = new Set(map.layers.map((layer) => layer.id));
 
 	for (const [index, object] of map.objects.entries()) {
 		const path = `objects[${index}]`;
-		validateObject(map, object, path, objectIDs, roomIDs, layerIDs, error);
+		validateObject(map, object, path, objectIDs, layerIDs, error, warning);
 	}
 }
 
@@ -286,9 +231,9 @@ function validateObject(
 	object: ObjectData,
 	path: string,
 	objectIDs: Set<string>,
-	roomIDs: Set<string>,
 	layerIDs: Set<string>,
-	error: (path: string, message: string) => void
+	error: (path: string, message: string) => void,
+	warning: (path: string, message: string) => void
 ): void {
 	if (!isPlainObject(object)) {
 		error(path, 'object must be an object');
@@ -303,16 +248,10 @@ function validateObject(
 	}
 	if (typeof object.type !== 'string' || object.type.trim() === '') {
 		error(path + '.type', 'object type is required');
-	} else {
-		if (!(SUPPORTED_OBJECT_TYPES as readonly string[]).includes(object.type)) {
-			error(
-				path + '.type',
-				`unsupported object type "${object.type}"; the game loader supports: ${SUPPORTED_OBJECT_TYPES.join(', ')}`
-			);
-		}
-		if (!Object.prototype.hasOwnProperty.call(map.tiles, object.type)) {
-			error(path + '.type', `object type "${object.type}" must also exist as a tile definition`);
-		}
+	} else if (!(SUPPORTED_OBJECT_TYPES as readonly string[]).includes(object.type)) {
+		warning(path + '.type', `the game loader does not handle object type "${object.type}" yet`);
+	} else if (!Object.prototype.hasOwnProperty.call(map.tiles, object.type)) {
+		error(path + '.type', `object type "${object.type}" must also exist as a tile definition`);
 	}
 	if (typeof object.layer !== 'string' || object.layer.trim() === '') {
 		error(path + '.layer', 'object layer is required');
@@ -326,16 +265,6 @@ function validateObject(
 	}
 	if (!isPlainObject(object.properties)) {
 		error(path + '.properties', 'properties must be an object');
-		return;
-	}
-	if (!Object.prototype.hasOwnProperty.call(object.properties, 'room_id')) {
-		return;
-	}
-	const roomID = object.properties.room_id;
-	if (typeof roomID !== 'string') {
-		error(path + '.properties.room_id', 'room_id must be a string');
-	} else if (!roomIDs.has(roomID)) {
-		error(path + '.properties.room_id', `references undefined room "${roomID}"`);
 	}
 }
 

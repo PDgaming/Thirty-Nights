@@ -2,18 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { createEmptyMap, createLayer, createTileDef } from './map-model/factory';
 import {
 	addLayer,
+	addObject,
 	addTile,
+	countObjectsOfType,
 	countTileReferences,
 	describeResizeLoss,
 	lineBetween,
 	moveLayer,
 	removeLayer,
+	removeObjectsAt,
 	removeTile,
 	renameLayer,
+	renameObjectsOfType,
 	renameTile,
+	reorderLayers,
 	resizeMap,
 	setCell,
 	uniqueLayerId,
+	uniqueObjectId,
 	uniqueTileId,
 	updateTile
 } from './map-operations';
@@ -94,6 +100,20 @@ describe('layer operations', () => {
 		expect(map.layers.map((layer) => layer.z_index)).toEqual([0, 1]);
 	});
 
+	it('reorders layers from an explicit bottom-to-top list', () => {
+		const map = baseMap();
+		expect(reorderLayers(map, ['walls', 'floor'])).toBe(true);
+		expect(map.layers.map((layer) => layer.id)).toEqual(['walls', 'floor']);
+		expect(map.layers.map((layer) => layer.z_index)).toEqual([0, 1]);
+	});
+
+	it('rejects incomplete, unknown, or duplicate layer ID lists', () => {
+		const map = baseMap();
+		expect(reorderLayers(map, ['floor'])).toBe(false);
+		expect(reorderLayers(map, ['floor', 'ghost'])).toBe(false);
+		expect(reorderLayers(map, ['floor', 'floor'])).toBe(false);
+	});
+
 	it('generates unique IDs', () => {
 		const map = baseMap();
 		expect(uniqueLayerId(map, 'floor')).toBe('floor_2');
@@ -159,18 +179,57 @@ describe('resize', () => {
 		expect(map.spawn).toEqual({ x: 1, y: 1 });
 	});
 
-	it('drops rooms and objects outside the new bounds', () => {
+	it('drops objects outside the new bounds', () => {
 		const map = baseMap();
-		map.rooms = [
-			{ id: 'inside', name: 'Inside', bounds: { x: 1, y: 1, width: 1, height: 1 } },
-			{ id: 'outside', name: 'Outside', bounds: { x: 3, y: 2, width: 1, height: 1 } }
-		];
 		map.objects = [
 			{ id: 'in', type: 'floor', layer: 'floor', x: 0, y: 0, properties: {} },
 			{ id: 'out', type: 'floor', layer: 'floor', x: 3, y: 2, properties: {} }
 		];
 		resizeMap(map, 2, 2);
-		expect(map.rooms.map((room) => room.id)).toEqual(['inside']);
 		expect(map.objects.map((object) => object.id)).toEqual(['in']);
+	});
+});
+
+describe('object operations', () => {
+	it('adds objects to the objects list without touching layer grids', () => {
+		const map = baseMap();
+		const object = addObject(map, 'door', 'floor', 1, 2);
+		expect(object).toMatchObject({ id: 'door', type: 'door', layer: 'floor', x: 1, y: 2 });
+		expect(map.objects).toHaveLength(1);
+		expect(map.layers[0].grid[2][1]).toBe('');
+	});
+
+	it('generates unique object IDs and skips duplicate type plus cell', () => {
+		const map = baseMap();
+		addObject(map, 'door', 'floor', 0, 0);
+		const second = addObject(map, 'door', 'floor', 1, 0);
+		expect(second?.id).toBe('door_2');
+		expect(uniqueObjectId(map, 'door')).toBe('door_3');
+		expect(addObject(map, 'door', 'floor', 1, 0)).toBeNull();
+		expect(addObject(map, 'chest', 'floor', 1, 0)?.id).toBe('chest');
+	});
+
+	it('rejects objects outside the map or on missing layers', () => {
+		const map = baseMap();
+		expect(addObject(map, 'door', 'nope', 0, 0)).toBeNull();
+		expect(addObject(map, 'door', 'floor', 4, 0)).toBeNull();
+		expect(addObject(map, '', 'floor', 0, 0)).toBeNull();
+	});
+
+	it('removes objects by cell and counts by type', () => {
+		const map = baseMap();
+		addObject(map, 'door', 'floor', 0, 0);
+		addObject(map, 'door', 'floor', 1, 0);
+		expect(removeObjectsAt(map, 0, 0)).toBe(1);
+		expect(countObjectsOfType(map, 'door')).toBe(1);
+		expect(removeObjectsAt(map, 3, 3)).toBe(0);
+	});
+
+	it('renames every object of a type', () => {
+		const map = baseMap();
+		addObject(map, 'door', 'floor', 0, 0);
+		addObject(map, 'door', 'floor', 1, 0);
+		renameObjectsOfType(map, 'door', 'gate');
+		expect(map.objects.map((object) => object.type)).toEqual(['gate', 'gate']);
 	});
 });

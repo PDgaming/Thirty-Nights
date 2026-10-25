@@ -28,7 +28,7 @@
 
 		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		ctx.clearRect(0, 0, size, size);
-		ctx.fillStyle = '#0d1014';
+		ctx.fillStyle = '#222222';
 		ctx.fillRect(0, 0, size, size);
 
 		if (!currentTile) {

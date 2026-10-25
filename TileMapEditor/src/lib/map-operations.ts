@@ -4,7 +4,7 @@ import type {
 	CollisionName,
 	GameMap,
 	LayerData,
-	RoomData,
+	ObjectData,
 	TileDef
 } from './map-model/types';
 import { createTileDef } from './map-model/factory';
@@ -159,6 +159,30 @@ export function moveLayer(map: GameMap, layerID: string, direction: number): boo
 	return true;
 }
 
+/**
+ * Reorders every layer from an explicit bottom-to-top list of IDs and
+ * normalizes z-indexes to match. Returns false for unknown or duplicate IDs.
+ */
+export function reorderLayers(map: GameMap, orderedIDs: string[]): boolean {
+	if (orderedIDs.length !== map.layers.length) return false;
+
+	const seen: string[] = [];
+	const next: LayerData[] = [];
+	for (const id of orderedIDs) {
+		if (seen.includes(id)) return false;
+		seen.push(id);
+		const layer = findLayer(map, id);
+		if (!layer) return false;
+		next.push(layer);
+	}
+
+	next.forEach((layer, index) => {
+		layer.z_index = index;
+	});
+	map.layers = next;
+	return true;
+}
+
 export function normalizeLayerOrder(map: GameMap): void {
 	const ordered = [...map.layers].sort((a, b) => a.z_index - b.z_index);
 	ordered.forEach((layer, index) => {
@@ -237,9 +261,77 @@ export function removeTile(map: GameMap, tileID: string): boolean {
 	return true;
 }
 
+export function uniqueObjectId(map: GameMap, base = 'object'): string {
+	const ids = new Set(map.objects.map((object) => object.id));
+	if (!ids.has(base)) return base;
+	let suffix = 2;
+	while (ids.has(`${base}_${suffix}`)) suffix += 1;
+	return `${base}_${suffix}`;
+}
+
+/**
+ * Adds an object to the map's object list. Objects are not written into layer
+ * grids, so the layer is only recorded as the object's layer reference.
+ * Returns null for invalid types, positions, layers, or duplicate type+cells.
+ */
+export function addObject(
+	map: GameMap,
+	type: string,
+	layerID: string,
+	x: number,
+	y: number,
+	properties: Record<string, unknown> = {}
+): ObjectData | null {
+	const trimmed = type.trim();
+	if (trimmed === '' || !inBounds(map, x, y)) return null;
+	if (!findLayer(map, layerID)) return null;
+	if (map.objects.some((object) => object.type === trimmed && object.x === x && object.y === y)) {
+		return null;
+	}
+
+	const object: ObjectData = {
+		id: uniqueObjectId(map, trimmed),
+		type: trimmed,
+		layer: layerID,
+		x,
+		y,
+		properties: { ...properties }
+	};
+	map.objects = [...map.objects, object];
+	return object;
+}
+
+export function removeObjectsAt(map: GameMap, x: number, y: number): number {
+	const next = map.objects.filter((object) => object.x !== x || object.y !== y);
+	const removed = map.objects.length - next.length;
+	if (removed > 0) map.objects = next;
+	return removed;
+}
+
+export function removeObjectsOfType(map: GameMap, type: string): boolean {
+	const next = map.objects.filter((object) => object.type !== type);
+	if (next.length === map.objects.length) return false;
+	map.objects = next;
+	return true;
+}
+
+export function renameObjectsOfType(map: GameMap, oldType: string, newType: string): void {
+	let changed = false;
+	for (const object of map.objects) {
+		if (object.type === oldType) {
+			object.type = newType;
+			changed = true;
+		}
+	}
+	if (changed) map.objects = [...map.objects];
+}
+
+export function countObjectsOfType(map: GameMap, type: string): number {
+	return map.objects.reduce((count, object) => (object.type === type ? count + 1 : count), 0);
+}
+
 export interface ResizeResult {
 	removedCells: number;
-	removedRooms: number;
 	removedObjects: number;
 	spawnMoved: boolean;
 }
@@ -256,13 +348,12 @@ export function describeResizeLoss(map: GameMap, width: number, height: number):
 		}
 	}
 
-	const removedRooms = map.rooms.filter((room) => !roomFits(room, width, height)).length;
 	const removedObjects = map.objects.filter(
 		(object) => object.x >= width || object.y >= height
 	).length;
 	const spawnMoved = map.spawn.x >= width || map.spawn.y >= height;
 
-	return { removedCells, removedRooms, removedObjects, spawnMoved };
+	return { removedCells, removedObjects, spawnMoved };
 }
 
 export function resizeMap(map: GameMap, width: number, height: number): ResizeResult {
@@ -280,7 +371,6 @@ export function resizeMap(map: GameMap, width: number, height: number): ResizeRe
 		layer.grid = next;
 	}
 
-	map.rooms = map.rooms.filter((room) => roomFits(room, width, height));
 	map.objects = map.objects.filter((object) => object.x < width && object.y < height);
 	if (result.spawnMoved) {
 		map.spawn = {
@@ -295,17 +385,10 @@ export function resizeMap(map: GameMap, width: number, height: number): ResizeRe
 	return result;
 }
 
-function roomFits(room: RoomData, width: number, height: number): boolean {
-	return room.bounds.x + room.bounds.width <= width && room.bounds.y + room.bounds.height <= height;
-}
-
 export function resizeLossLabels(result: ResizeResult): string[] {
 	const labels: string[] = [];
 	if (result.removedCells > 0) {
 		labels.push(`${result.removedCells} painted cell${result.removedCells === 1 ? '' : 's'}`);
-	}
-	if (result.removedRooms > 0) {
-		labels.push(`${result.removedRooms} room${result.removedRooms === 1 ? '' : 's'}`);
 	}
 	if (result.removedObjects > 0) {
 		labels.push(`${result.removedObjects} object${result.removedObjects === 1 ? '' : 's'}`);

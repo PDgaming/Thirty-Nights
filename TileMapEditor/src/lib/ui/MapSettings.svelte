@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import type { EditorState } from '#lib/editor-state.svelte';
 	import { resizeLossLabels } from '#lib/map-operations';
+	import { wheelNumber } from './wheel-number';
 
 	let { editor }: { editor: EditorState } = $props();
 
@@ -82,11 +83,6 @@
 		);
 	}
 
-	function newMap() {
-		if (!window.confirm('Create a new blank map? Unsaved changes will be lost.')) return;
-		editor.newMap();
-	}
-
 	function enterBlur(event: KeyboardEvent) {
 		if (event.key === 'Enter') (event.currentTarget as HTMLInputElement).blur();
 	}
@@ -94,10 +90,10 @@
 
 <section class="border-b" style="border-color: var(--border)">
 	<div class="panel-title">
-		<span>Map settings</span>
-		<button class="btn btn-xs" onclick={newMap}>New map</button>
+		<span>Map</span>
+		<span class="mono text-[10px]" style="color: var(--text-faint)">{editor.map.id}</span>
 	</div>
-	<div class="panel-body">
+	<div class="panel-body flex flex-col">
 		<div class="grid grid-cols-2 gap-2">
 			<label class="col-span-1">
 				<span class="field-label">Map ID</span>
@@ -113,6 +109,7 @@
 				<input
 					class="field"
 					type="number"
+					use:wheelNumber
 					min="1"
 					value={editor.map.tile_size}
 					onchange={commitTileSize}
@@ -137,6 +134,7 @@
 				<input
 					class="field"
 					type="number"
+					use:wheelNumber
 					min="1"
 					value={widthDraft}
 					oninput={(event) => (widthDraft = event.currentTarget.value)}
@@ -149,6 +147,7 @@
 				<input
 					class="field"
 					type="number"
+					use:wheelNumber
 					min="1"
 					value={heightDraft}
 					oninput={(event) => (heightDraft = event.currentTarget.value)}
@@ -158,31 +157,13 @@
 			</label>
 		</div>
 
-		<div class="flex items-center justify-between text-[10.5px]" style="color: var(--text-faint)">
-			<span class="mono">{editor.map.width} × {editor.map.height} cells</span>
-			<span class="mono">{editor.map.width * editor.map.height} cells / layer</span>
-		</div>
-	</div>
-</section>
-
-<section class="border-b" style="border-color: var(--border)">
-	<div class="panel-title">
-		<span>Spawn point</span>
-		<button
-			class="btn btn-xs"
-			class:btn-primary={editor.tool === 'spawn'}
-			onclick={() => (editor.tool = editor.tool === 'spawn' ? 'paint' : 'spawn')}
-		>
-			{editor.tool === 'spawn' ? 'Picking…' : 'Pick on map'}
-		</button>
-	</div>
-	<div class="panel-body">
 		<div class="grid grid-cols-2 gap-2">
 			<label>
-				<span class="field-label">X</span>
+				<span class="field-label">Spawn X</span>
 				<input
 					class="field"
 					type="number"
+					use:wheelNumber
 					min="0"
 					max={editor.map.width - 1}
 					value={editor.map.spawn.x}
@@ -192,10 +173,11 @@
 				/>
 			</label>
 			<label>
-				<span class="field-label">Y</span>
+				<span class="field-label">Spawn Y</span>
 				<input
 					class="field"
 					type="number"
+					use:wheelNumber
 					min="0"
 					max={editor.map.height - 1}
 					value={editor.map.spawn.y}
@@ -205,9 +187,5 @@
 				/>
 			</label>
 		</div>
-		<p class="text-[10.5px] leading-4" style="color: var(--text-faint)">
-			Stored in the exported map's <span class="mono">spawn</span> object. Click a cell in the workspace
-			while picking.
-		</p>
 	</div>
 </section>

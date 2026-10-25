@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { EditorState } from '#lib/editor-state.svelte';
 	import { MAX_TILESET_SLICES } from '#lib/tileset/slicing';
+	import { wheelNumber } from './wheel-number';
 	import TilesetPreview from './TilesetPreview.svelte';
 
 	let { editor }: { editor: EditorState } = $props();
 
 	let fileInput: HTMLInputElement | undefined = $state();
+	let dragActive = $state(false);
 
 	const previewCount = $derived(editor.getPreviewSlices().length);
 	const selectedSlice = $derived(editor.sliceForActiveTile);
@@ -20,6 +22,25 @@
 		if (!file) return;
 		await editor.importTileset(file);
 	}
+
+	function handleDragOver(event: DragEvent) {
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+		dragActive = true;
+	}
+
+	function handleDragLeave(event: DragEvent) {
+		const related = event.relatedTarget;
+		if (related instanceof Node && (event.currentTarget as HTMLElement).contains(related)) return;
+		dragActive = false;
+	}
+
+	function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		dragActive = false;
+		const file = event.dataTransfer?.files?.[0];
+		if (file) void editor.importTileset(file);
+	}
 </script>
 
 <div class="flex flex-col">
@@ -30,7 +51,7 @@
 		{/if}
 	</div>
 
-	<div class="panel-body">
+	<div class="panel-body flex-col flex">
 		<input
 			bind:this={fileInput}
 			type="file"
@@ -38,20 +59,41 @@
 			class="hidden"
 			onchange={handleFile}
 		/>
-		<div class="flex items-center gap-2">
-			<button class="btn flex-1" onclick={() => fileInput?.click()}>
-				{editor.tileset.image ? 'Replace image' : 'Import image'}
-			</button>
+		<div
+			class="dropzone"
+			class:loaded={editor.tileset.image}
+			class:drag-over={dragActive}
+			role="group"
+			aria-label="Tileset image drop zone"
+			ondragover={handleDragOver}
+			ondragleave={handleDragLeave}
+			ondrop={handleDrop}
+		>
 			{#if editor.tileset.image}
-				<span
-					class="mono max-w-[45%] truncate text-[10px]"
-					title={editor.tileset.fileName}
-					style="color: var(--text-faint)">{editor.tileset.fileName}</span
+				<button
+					type="button"
+					class="dropzone-bar"
+					onclick={() => fileInput?.click()}
+					title="Drop a new image or click to replace"
 				>
+					<span class="mono min-w-0 flex-1 truncate">{editor.tileset.fileName}</span>
+					<span class="shrink-0 text-[10.5px]" style="color: var(--text-faint)">
+						click to replace
+					</span>
+				</button>
+				<TilesetPreview {editor} />
+			{:else}
+				<button
+					type="button"
+					class="dropzone-empty"
+					onclick={() => fileInput?.click()}
+					title="Drop a tileset image or click to browse"
+				>
+					<span>Drop a tileset image here</span>
+					<span style="color: var(--text-faint)">or click to browse</span>
+				</button>
 			{/if}
 		</div>
-
-		<TilesetPreview {editor} />
 
 		{#if editor.tileset.image}
 			<div class="divider"></div>
@@ -65,23 +107,57 @@
 				<div class="grid grid-cols-2 gap-2">
 					<label>
 						<span class="field-label">Source tile W</span>
-						<input class="field-sm" type="number" min="1" bind:value={editor.slicing.tileWidth} />
+						<input
+							class="field-sm"
+							type="number"
+							use:wheelNumber
+							min="1"
+							bind:value={editor.slicing.tileWidth}
+						/>
 					</label>
 					<label>
 						<span class="field-label">Source tile H</span>
-						<input class="field-sm" type="number" min="1" bind:value={editor.slicing.tileHeight} />
+						<input
+							class="field-sm"
+							type="number"
+							use:wheelNumber
+							min="1"
+							bind:value={editor.slicing.tileHeight}
+						/>
 					</label>
 					<label>
 						<span class="field-label">Spacing</span>
-						<input class="field-sm" type="number" min="0" bind:value={editor.slicing.spacing} />
+						<input
+							class="field-sm"
+							type="number"
+							use:wheelNumber
+							min="0"
+							bind:value={editor.slicing.spacing}
+						/>
 					</label>
 					<label>
-						<span class="field-label">Margin</span>
-						<input class="field-sm" type="number" min="0" bind:value={editor.slicing.margin} />
+						<span class="field-label">Margin X</span>
+						<input
+							class="field-sm"
+							type="number"
+							use:wheelNumber
+							min="0"
+							bind:value={editor.slicing.marginX}
+						/>
+					</label>
+					<label>
+						<span class="field-label">Margin Y</span>
+						<input
+							class="field-sm"
+							type="number"
+							use:wheelNumber
+							min="0"
+							bind:value={editor.slicing.marginY}
+						/>
 					</label>
 				</div>
 				<div class="mt-2 flex items-center justify-between gap-2">
-					<p class="text-[10px] leading-4" style="color: var(--text-faint)">
+					<p class="text-[10.5px] leading-4" style="color: var(--text-faint)">
 						Map tile size is <span class="mono">{editor.map.tile_size}px</span> (game units). Source tiles
 						are scaled into it.
 					</p>
@@ -94,7 +170,7 @@
 					</button>
 				</div>
 				{#if previewCount > MAX_TILESET_SLICES}
-					<p class="mt-1 text-[10px]" style="color: var(--danger)">
+					<p class="mt-1 text-[10.5px]" style="color: var(--danger)">
 						Too many tiles ({previewCount}); adjust the slicing settings.
 					</p>
 				{/if}
@@ -110,11 +186,13 @@
 						{editor.activeTileId}
 					</div>
 					{#if selectedSlice}
-						<div class="mono mt-0.5 text-[10px]" style="color: var(--text-faint)">
+						<div class="mono mt-0.5 text-[10.5px]" style="color: var(--text-faint)">
 							source {selectedSlice.sx},{selectedSlice.sy} · {selectedSlice.sw}×{selectedSlice.sh}
 						</div>
 					{:else}
-						<div class="mt-0.5 text-[10px]" style="color: var(--text-faint)">No image binding</div>
+						<div class="mt-0.5 text-[10.5px]" style="color: var(--text-faint)">
+							No image binding
+						</div>
 					{/if}
 				</div>
 				<span

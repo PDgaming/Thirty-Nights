@@ -3,6 +3,7 @@
 	import type { EditorState } from '#lib/editor-state.svelte';
 	import { drawMap } from '#lib/renderer/draw-map';
 	import { screenToCell } from '#lib/renderer/viewport';
+	import Ruler from './Ruler.svelte';
 
 	let { editor }: { editor: EditorState } = $props();
 
@@ -55,6 +56,8 @@
 			hover: editor.hover,
 			activeTileId: editor.activeTileId,
 			activeLayerId: editor.activeLayerId,
+			activeObjectTypeId: editor.activeObjectTypeId,
+			objectColors: editor.objectColors,
 			tool: editor.tool
 		});
 	}
@@ -84,7 +87,57 @@
 		}
 
 		function keyDown(event: KeyboardEvent) {
-			if (event.code !== 'Space' || editableTarget(event.target)) return;
+			if (editableTarget(event.target)) return;
+			if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.code === 'KeyZ') {
+				event.preventDefault();
+				editor.undo();
+				return;
+			}
+			if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.code === 'KeyY') {
+				event.preventDefault();
+				editor.redo();
+				return;
+			}
+			if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.code === 'KeyJ') {
+				event.preventDefault();
+				editor.fitView();
+				return;
+			}
+			if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+				if (event.code === 'Equal' || event.code === 'NumpadAdd') {
+					editor.zoomBy(1.25);
+					return;
+				}
+				if (event.code === 'Minus' || event.code === 'NumpadSubtract') {
+					editor.zoomBy(1 / 1.25);
+					return;
+				}
+				if (event.code === 'KeyB') {
+					editor.tool = 'paint';
+					return;
+				}
+				if (event.code === 'KeyE') {
+					editor.tool = 'erase';
+					return;
+				}
+				if (event.code === 'KeyO') {
+					editor.tool = 'object';
+					return;
+				}
+				if (event.code === 'KeyS') {
+					editor.tool = 'spawn';
+					return;
+				}
+				if (event.code === 'KeyG') {
+					editor.showGrid = !editor.showGrid;
+					return;
+				}
+				if (event.code === 'Digit1') {
+					editor.setZoomPercent(100);
+					return;
+				}
+			}
+			if (event.code !== 'Space') return;
 			event.preventDefault();
 			spacePressed = true;
 		}
@@ -137,6 +190,8 @@
 			editor.hover,
 			editor.activeTileId,
 			editor.activeLayerId,
+			editor.activeObjectTypeId,
+			editor.objectTypes,
 			editor.tool,
 			width,
 			height
@@ -159,32 +214,45 @@
 		event.preventDefault();
 		canvas.focus();
 
-		if (event.button === 1 || event.button === 2 || (event.button === 0 && spacePressed)) {
+		if (event.button === 1 || (event.button === 0 && spacePressed)) {
 			isPanning = true;
 			panX = event.clientX;
 			panY = event.clientY;
 			canvas.setPointerCapture(event.pointerId);
 			return;
 		}
-		if (event.button !== 0) return;
+		if (event.button !== 0 && event.button !== 2) return;
+
+		// Right-click uses the alternate paint/erase tool.
+		const alternateTool = event.button === 2;
 
 		const cell = cellFromEvent(event);
-		if (editor.tool === 'spawn') {
+		if (!alternateTool && editor.tool === 'spawn') {
 			editor.setSpawnFromCell(cell.x, cell.y);
 			editor.tool = 'paint';
 			return;
 		}
+		if (alternateTool && editor.tool === 'spawn') return;
+
+		const erase = alternateTool ? editor.tool === 'paint' : editor.tool === 'erase';
+		const objectErase = editor.tool === 'object' && alternateTool;
 
 		if (!editor.canPaint()) return;
-		if (editor.tool === 'paint' && (!editor.activeTileId || !editor.activeTile)) {
+		if (!erase && editor.tool === 'paint' && (!editor.activeTileId || !editor.activeTile)) {
 			editor.notify('Select a tile before painting', 'info');
 			return;
 		}
 
 		isPainting = true;
-		eraseStroke = editor.tool === 'erase';
+		editor.beginUndoGroup();
+		eraseStroke = erase || objectErase;
 		lastCell = cell;
-		editor.paintLine(cell, cell, eraseStroke);
+		if (editor.tool === 'object') {
+			if (objectErase) editor.eraseObjectsLine(cell, cell);
+			else editor.placeObjectLine(cell, cell);
+		} else {
+			editor.paintLine(cell, cell, eraseStroke);
+		}
 		canvas.setPointerCapture(event.pointerId);
 	}
 
@@ -202,7 +270,12 @@
 		}
 
 		if (isPainting && lastCell && (cell.x !== lastCell.x || cell.y !== lastCell.y)) {
-			editor.paintLine(lastCell, cell, eraseStroke);
+			if (editor.tool === 'object') {
+				if (eraseStroke) editor.eraseObjectsLine(lastCell, cell);
+				else editor.placeObjectLine(lastCell, cell);
+			} else {
+				editor.paintLine(lastCell, cell, eraseStroke);
+			}
 			lastCell = cell;
 		}
 	}
@@ -211,6 +284,7 @@
 		if (canvas?.hasPointerCapture(event.pointerId)) {
 			canvas.releasePointerCapture(event.pointerId);
 		}
+		if (isPainting) editor.endUndoGroup();
 		isPanning = false;
 		isPainting = false;
 		lastCell = null;
@@ -221,57 +295,48 @@
 	}
 
 	const cursor = $derived(
-		isPanning ? 'grabbing' : spacePressed ? 'grab' : editor.tool === 'spawn' ? 'cell' : 'crosshair'
+		isPanning
+			? 'grabbing'
+			: spacePressed
+				? 'grab'
+				: editor.tool === 'spawn'
+					? 'cell'
+					: editor.tool === 'object'
+						? 'copy'
+						: 'crosshair'
 	);
 </script>
 
-<div
-	bind:this={container}
-	class="relative h-full w-full overflow-hidden"
-	style="background: var(--bg)"
->
-	<canvas
-		bind:this={canvas}
-		class="absolute inset-0 block h-full w-full outline-none"
-		style="cursor: {cursor}; touch-action: none"
-		tabindex="0"
-		onpointerdown={handlePointerDown}
-		onpointermove={handlePointerMove}
-		onpointerup={endPointer}
-		onpointercancel={endPointer}
-		onpointerleave={handlePointerLeave}
-		oncontextmenu={(event) => event.preventDefault()}
-		ondblclick={() => editor.fitView()}
-	></canvas>
-
-	<div
-		class="pointer-events-none absolute bottom-2.5 left-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded border px-2.5 py-1.5 text-[10px]"
-		style="border-color: var(--border-strong); background: rgba(13, 16, 20, 0.88); color: var(--text-dim); backdrop-filter: blur(4px)"
-	>
-		<span class="mono">
-			{editor.hover ? `${editor.hover.x}, ${editor.hover.y}` : '—, —'}
-		</span>
-		<span class="mono">{Math.round(editor.view.scale * 100)}%</span>
-		<span class="mono">{editor.map.width}×{editor.map.height}</span>
-		{#if editor.hover && editor.activeLayer}
-			<span class="max-w-40 truncate">
-				layer <span class="mono" style="color: var(--text)">{editor.activeLayer.id}</span>
-			</span>
-		{/if}
-		{#if editor.activeTileId}
-			<span class="max-w-40 truncate">
-				tile <span class="mono" style="color: var(--accent)">{editor.activeTileId}</span>
-			</span>
-		{/if}
-		{#if !editor.activeLayerIsVisible}
-			<span class="badge badge-warn">active layer hidden</span>
-		{/if}
+<div class="relative h-full w-full overflow-hidden" style="background: var(--canvas)">
+	<div bind:this={container} class="absolute" style="top: 17px; left: 17px; right: 0; bottom: 0">
+		<canvas
+			bind:this={canvas}
+			class="absolute inset-0 block h-full w-full outline-none"
+			style="cursor: {cursor}; touch-action: none"
+			tabindex="0"
+			aria-label="Map canvas. Scroll to zoom, space-drag to pan."
+			onpointerdown={handlePointerDown}
+			onpointermove={handlePointerMove}
+			onpointerup={endPointer}
+			onpointercancel={endPointer}
+			onpointerleave={handlePointerLeave}
+			oncontextmenu={(event) => event.preventDefault()}
+			ondblclick={() => editor.fitView()}
+		></canvas>
 	</div>
 
-	<div
-		class="pointer-events-none absolute right-2.5 bottom-2.5 rounded border px-2 py-1 text-[10px]"
-		style="border-color: var(--border-strong); background: rgba(13, 16, 20, 0.88); color: var(--text-faint)"
-	>
-		Wheel to zoom · middle/right-drag or space-drag to pan · double-click to fit
+	<div class="ruler-x">
+		<Ruler {editor} orient="x" size={width} />
 	</div>
+	<div class="ruler-y">
+		<Ruler {editor} orient="y" size={height} />
+	</div>
+	<div class="ruler-corner"></div>
 </div>
+
+<style>
+	canvas:focus-visible {
+		outline: 1px solid var(--focus);
+		outline-offset: -1px;
+	}
+</style>
