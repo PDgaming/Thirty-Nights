@@ -14,11 +14,17 @@ func New(x, y float32) *Player {
 		Size:     rl.Vector2{X: 12, Y: 14},
 		Facing:   rl.Vector2{X: -1, Y: 0},
 		Animator: *NewAnimator(),
+		Sitting:  false,
 	}
 	return p
 }
 
 func (p *Player) Update(dt float32, m *world.MapData) {
+	if p.Sitting {
+		p.Animator.ChangeState(Idle)
+		return
+	}
+
 	movement := rl.Vector2{
 		X: float32(0),
 		Y: float32(0),
@@ -132,4 +138,17 @@ func (p *Player) Center() rl.Vector2 {
 		X: p.Position.X + p.Size.X/2,
 		Y: p.Position.Y + p.Size.Y/2,
 	}
+}
+
+func (p *Player) Sit(seatRect rl.Rectangle) {
+	p.savedPosition = p.Position
+	p.Position = rl.Vector2{
+		X: seatRect.X + (seatRect.Width-p.Size.X)/2,
+		Y: seatRect.Y + (seatRect.Height-p.Size.Y)/2,
+	}
+	p.Sitting = true
+}
+func (p *Player) Stand() {
+	p.Position = p.savedPosition
+	p.Sitting = false
 }

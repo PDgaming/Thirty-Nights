@@ -15,6 +15,9 @@ type Player struct {
 	Size     rl.Vector2
 	Facing   rl.Vector2
 	Animator Animator
+
+	Sitting       bool
+	savedPosition rl.Vector2
 }
 
 type Animation struct {

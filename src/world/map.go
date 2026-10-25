@@ -19,9 +19,6 @@ func DrawMap(m *MapData, debug bool) {
 	})
 
 	for _, layer := range layers {
-		if layer.ID == "structure" {
-			continue
-		}
 		for y := 0; y < len(layer.Grid); y++ {
 			for x := 0; x < len(layer.Grid[y]); x++ {
 				tileID := layer.Grid[y][x]

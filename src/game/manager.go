@@ -6,6 +6,7 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"thirty.nights/src/camera"
+	"thirty.nights/src/objects"
 	"thirty.nights/src/player"
 	"thirty.nights/src/world"
 )
@@ -37,6 +38,14 @@ func (g *Game) Update(dt float32) {
 		}
 		if canActivate {
 			g.ActiveInteractable.Interact()
+			if seat, ok := g.ActiveInteractable.(*objects.Seat); ok {
+				switch {
+				case seat.Occupied && !g.Player.Sitting:
+					g.Player.Sit(seat.Bounds)
+				case !seat.Occupied && g.Player.Sitting:
+					g.Player.Stand()
+				}
+			}
 		}
 	}
 

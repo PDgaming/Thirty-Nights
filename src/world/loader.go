@@ -64,6 +64,13 @@ func (m *MapData) BuildObjects() error {
 			}
 			color := HexToRlColor(tileDef.Visual.Color)
 			m.ObjectsByID[object.ID] = objects.NewDoor(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, color, object.Properties)
+		case "seat":
+			tileDef, ok := m.TileDefAt(object.Type)
+			if !ok {
+				return fmt.Errorf("failed to find tiledef for seat: %s", object.ID)
+			}
+			color := HexToRlColor(tileDef.Visual.Color)
+			m.ObjectsByID[object.ID] = objects.NewSeat(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, color, object.Properties)
 		default:
 			return fmt.Errorf("unknown object type: %s", object.Type)
 		}
