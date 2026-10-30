@@ -29,7 +29,7 @@ func LoadDir(dir string) (Catalog, error) {
 		}
 
 		if previous, exists := sources[d.ID]; exists {
-			return nil, fmt.Errorf("Dialogue: duplicate id %q in %s and %s", d.ID, previous, path)
+			return nil, fmt.Errorf("dialogue: duplicate id %q in %s and %s", d.ID, previous, path)
 		}
 		sources[d.ID] = path
 		catalog[d.ID] = d
@@ -57,7 +57,7 @@ func loadFile(path string) (*Dialogue, error) {
 
 func validate(path string, d *Dialogue) error {
 	if d.ID == "" {
-		return fmt.Errorf("dialogue: %s: midding id", path)
+		return fmt.Errorf("dialogue: %s: missing id", path)
 	}
 	if d.Start == "" {
 		return fmt.Errorf("dialogue: %s: dialogue %q has no start node", path, d.ID)

@@ -1,6 +1,6 @@
 package dialogue
 
-type DialogueNote struct {
+type DialogueNode struct {
 	Speaker string  `json:"speaker"`
 	Text    string  `json:"text"`
 	Next    *string `json:"next"`
@@ -9,7 +9,7 @@ type DialogueNote struct {
 type Dialogue struct {
 	ID    string                  `json:"id"`
 	Start string                  `json:"start"`
-	Nodes map[string]DialogueNote `json:"nodes"`
+	Nodes map[string]DialogueNode `json:"nodes"`
 }
 
 type Catalog map[string]*Dialogue
