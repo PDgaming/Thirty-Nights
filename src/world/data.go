@@ -72,6 +72,9 @@ type ObjectType interface {
 	Collidable
 }
 
+// Catalog holds every loaded map indexed by map ID.
+type Catalog map[string]*MapData
+
 type MapData struct {
 	FormatVersion int                `json:"format_version"`
 	ID            string             `json:"id"`

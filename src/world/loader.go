@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"thirty.nights/src/objects"
 )
@@ -13,39 +15,63 @@ var (
 	_ Interactable = (*objects.Seat)(nil)
 )
 
-func LoadMap(path string) (*MapData, error) {
-	// Read the map file
-	mapFile, err := os.ReadFile(path)
+func LoadDir(dir string) (Catalog, error) {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read map file: %w", err)
+		return nil, fmt.Errorf("world: read %s: %w", dir, err)
 	}
 
-	// Parse the map file
-	var mapData MapData
-	err = json.Unmarshal(mapFile, &mapData)
+	catalog := make(Catalog, len(entries))
+	sources := make(map[string]string, len(entries))
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".json") {
+			continue
+		}
+		path := filepath.Join(dir, entry.Name())
+
+		m, err := LoadMap(path)
+		if err != nil {
+			return nil, err
+		}
+
+		if previous, exists := sources[m.ID]; exists {
+			return nil, fmt.Errorf("world: duplicate map id %q in %s and %s", m.ID, previous, path)
+		}
+		sources[m.ID] = path
+		catalog[m.ID] = m
+	}
+
+	return catalog, nil
+}
+
+func LoadMap(path string) (*MapData, error) {
+	mapFile, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse map file: %w", err)
+		return nil, fmt.Errorf("world: read %s: %w", path, err)
+	}
+
+	var mapData MapData
+	if err := json.Unmarshal(mapFile, &mapData); err != nil {
+		return nil, fmt.Errorf("world: parse %s: %w", path, err)
 	}
 
 	for i := range mapData.Layers {
 		mode, err := ParseCollisionType(mapData.Layers[i].CollisionName)
 		if err != nil {
-			return nil, fmt.Errorf("invalid collision type: %w", err)
+			return nil, fmt.Errorf("world: invalid collision type in %s: %w", path, err)
 		}
 		mapData.Layers[i].Collision = mode
 	}
 
-	// Validate the map data
-	err = ValidateMap(mapData)
-	if err != nil {
-		return nil, fmt.Errorf("invalid map data: %w", err)
+	if err := ValidateMap(mapData); err != nil {
+		return nil, fmt.Errorf("world: invalid map data in %s: %w", path, err)
 	}
 
 	mapData.BuildLayerIndex()
 	mapData.ObjectsByID = make(map[string]ObjectType)
-	err = mapData.BuildObjects()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build objects: %w", err)
+	if err := mapData.BuildObjects(); err != nil {
+		return nil, fmt.Errorf("world: failed to build objects in %s: %w", path, err)
 	}
 
 	return &mapData, nil
