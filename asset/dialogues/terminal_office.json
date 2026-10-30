@@ -1,0 +1,15 @@
+{
+    "id": "terminal_intro",
+    "start": "start",
+    "nodes": {
+        "start": {
+            "text": "The terminal is quiet. Rain on glass.",
+            "next": "second"
+        },
+        "second": {
+            "speaker": "Dispatcher",
+            "text": "You are late.",
+            "next": null
+        }
+    }
+}

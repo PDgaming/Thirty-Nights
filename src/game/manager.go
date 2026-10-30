@@ -5,6 +5,7 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"thirty.nights/src/camera"
+	"thirty.nights/src/dialogue"
 	"thirty.nights/src/objects"
 	"thirty.nights/src/player"
 	"thirty.nights/src/world"
@@ -18,7 +19,29 @@ func New(debug bool) *Game {
 }
 
 func (g *Game) Update(dt float32) {
-	g.Cam.UpdateViewport()
+	g.Step(dt, Input{Interact: rl.IsKeyPressed(rl.KeyE)})
+}
+
+func (g *Game) Step(dt float32, in Input) {
+	if g.Cam != nil {
+		g.Cam.UpdateViewport()
+	}
+
+	switch g.mode {
+	case ModePlaying:
+		g.updatePlaying(dt, in)
+	case ModeDialogue:
+		g.updateDialogue(dt, in)
+	}
+}
+
+func (g *Game) updatePlaying(dt float32, in Input) {
+	if g.pendingDialogue != "" {
+		id := g.pendingDialogue
+		g.pendingDialogue = ""
+		g.startDialogue(id)
+		return
+	}
 
 	for _, obj := range g.Map.ObjectsByID {
 		obj.Update(dt)
@@ -56,6 +79,38 @@ func (g *Game) Update(dt float32) {
 	mapWidthPixels := g.Map.Width * g.Map.TileSize
 	mapHeightPixels := g.Map.Height * g.Map.TileSize
 	g.Cam.ClampToBounds(mapWidthPixels, mapHeightPixels)
+}
+
+func (g *Game) updateDialogue(dt float32, in Input) {
+	g.Dialogue.Update(dt)
+
+	if in.Interact {
+		g.Dialogue.Advance()
+	}
+
+	if g.Dialogue.Snapshot().Finished {
+		g.finishDialogue()
+	}
+}
+
+func (g *Game) startDialogue(id string) {
+	def, ok := g.Dialogues.Get(id)
+	if !ok {
+		fmt.Errorf("dialogue: unkown id %q", id)
+		return
+	}
+
+	g.Dialogue = dialogue.NewSession(def)
+	g.dialogueReturn = g.mode
+	g.mode = ModeDialogue
+	g.ActiveInteractable = nil
+}
+
+func (g *Game) finishDialogue() {
+	g.Dialogue = nil
+	g.mode = g.dialogueReturn
+	g.ActiveInteractable = nil
+
 }
 
 func (g *Game) Draw() {
@@ -97,7 +152,6 @@ func (g *Game) DrawUI() {
 	}
 }
 
-// LoadLevels reads every map in dir into memory, keyed by map ID.
 func (g *Game) LoadLevels(dir string) error {
 	levels, err := world.LoadDir(dir)
 	if err != nil {
@@ -138,4 +192,32 @@ func (g *Game) LoadLevel(id string) (err error) {
 		Y: float32(g.Map.Height*g.Map.TileSize) / 2,
 	}
 	return nil
+}
+
+func (g *Game) LoadDialogues(dir string) error {
+	catalog, err := dialogue.LoadDir(dir)
+	if err != nil {
+		return fmt.Errorf("failed to load dialogues: %w", err)
+	}
+	g.Dialogues = catalog
+	return nil
+}
+
+func (g *Game) Mode() Mode {
+	return g.mode
+}
+
+func (g *Game) RequestDialogue(id string) {
+	g.pendingDialogue = id
+}
+
+// Helper Functions
+func (m Mode) String() string {
+	switch m {
+	case ModePlaying:
+		return "Playing"
+	case ModeDialogue:
+		return "Dialogue"
+	}
+	return "Unkown"
 }

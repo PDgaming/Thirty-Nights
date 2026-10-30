@@ -24,12 +24,21 @@ func main() {
 	if err := g.LoadLevels("asset/maps"); err != nil {
 		log.Fatalf("error: %+v", err)
 	}
+	if err := g.LoadDialogues("asset/dialogues"); err != nil {
+		log.Fatalf("error: %+v", err)
+	}
 	if err := g.LoadLevel(level); err != nil {
 		log.Fatalf("error: %+v", err)
 	}
 
 	for !rl.WindowShouldClose() {
 		dt := rl.GetFrameTime()
+
+		// Temporary
+		if rl.IsKeyPressed(rl.KeyT) {
+			g.RequestDialogue("terminal_intro")
+		}
+
 		g.Update(dt)
 
 		voidTile, ok := g.Map.TileDefAt("void")
