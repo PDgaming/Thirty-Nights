@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"log"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"thirty.nights/src/camera"
@@ -98,28 +97,39 @@ func (g *Game) DrawUI() {
 	}
 }
 
-func (g *Game) LoadLevel(level int) (err error) {
-	if level < 1 {
-		return fmt.Errorf("level must be greater than 0")
-	}
-	if level == g.level {
-		return
-	}
-	g.level = level
-
-	mapData, err := world.LoadMap(fmt.Sprintf("asset/maps/%d.json", level))
+// LoadLevels reads every map in dir into memory, keyed by map ID.
+func (g *Game) LoadLevels(dir string) error {
+	levels, err := world.LoadDir(dir)
 	if err != nil {
-		return fmt.Errorf("failed to load map: %w", err)
+		return fmt.Errorf("failed to load levels: %w", err)
 	}
-	g.Map = mapData
+	g.Levels = levels
+	return nil
+}
+
+func (g *Game) LoadLevel(id string) (err error) {
+	if g.Levels == nil {
+		return fmt.Errorf("no levels loaded")
+	}
+	if id == g.currentLevel {
+		return nil
+	}
+
+	mapData, ok := g.Levels[id]
+	if !ok {
+		return fmt.Errorf("unknown level %q", id)
+	}
 
 	// check for valid spawn point
-	if g.Map.Spawn.X < 0 || g.Map.Spawn.X > g.Map.Width {
-		log.Fatalf("invalid X spawn point: %+v", g.Map.Spawn)
+	if mapData.Spawn.X < 0 || mapData.Spawn.X > mapData.Width {
+		return fmt.Errorf("invalid X spawn point in level %q: %+v", id, mapData.Spawn)
 	}
-	if g.Map.Spawn.Y < 0 || g.Map.Spawn.Y > g.Map.Height {
-		log.Fatalf("invalid Y spawn point: %+v", g.Map.Spawn)
+	if mapData.Spawn.Y < 0 || mapData.Spawn.Y > mapData.Height {
+		return fmt.Errorf("invalid Y spawn point in level %q: %+v", id, mapData.Spawn)
 	}
+
+	g.currentLevel = id
+	g.Map = mapData
 	g.Player = player.New(float32(g.Map.Spawn.X*16), float32(g.Map.Spawn.Y*16))
 	g.ActiveInteractable = nil
 	g.Cam = camera.New()

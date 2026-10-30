@@ -7,7 +7,9 @@ import (
 )
 
 type Game struct {
-	level  int
+	Levels       world.Catalog
+	currentLevel string
+
 	Map    *world.MapData
 	Player *player.Player
 	Cam    *camera.Controller
