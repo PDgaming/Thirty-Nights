@@ -10,8 +10,10 @@ import (
 
 // Constants
 const (
-	level = "terminal_office"
-	debug = true
+	mapDir      = "asset/maps"
+	dialogueDir = "asset/dialogues"
+	level       = "terminal_office"
+	debug       = true
 )
 
 func main() {
@@ -21,10 +23,10 @@ func main() {
 	rl.SetTargetFPS(60)
 
 	g := game.New(debug)
-	if err := g.LoadLevels("asset/maps"); err != nil {
+	if err := g.LoadLevels(mapDir); err != nil {
 		log.Fatalf("error: %+v", err)
 	}
-	if err := g.LoadDialogues("asset/dialogues"); err != nil {
+	if err := g.LoadDialogues(dialogueDir); err != nil {
 		log.Fatalf("error: %+v", err)
 	}
 	if err := g.LoadLevel(level); err != nil {
@@ -36,7 +38,7 @@ func main() {
 
 		// Temporary
 		if rl.IsKeyPressed(rl.KeyT) {
-			g.RequestDialogue("terminal_intro")
+			g.RequestDialogue(level)
 		}
 
 		g.Update(dt)
