@@ -16,6 +16,16 @@ type Dialogue struct {
 
 type Catalog map[string]*Dialogue
 
+type Line struct {
+	Text  string
+	Start int
+	End   int
+}
+
+type TextPage struct {
+	Lines []Line
+}
+
 type Page struct {
 	Start int
 	End   int
@@ -42,3 +52,27 @@ type Snapshot struct {
 	RevealDone bool
 	Finished   bool
 }
+
+type Rect struct {
+	X      float32
+	Y      float32
+	Width  float32
+	Height float32
+}
+
+type Metrics struct {
+	Panel      Rect
+	Speaker    Rect
+	Text       Rect
+	Indicator  Rect
+	FontSize   float32
+	LineHeight float32
+	Padding    float32
+}
+
+type Layout struct {
+	Metrics
+	Pages []TextPage
+}
+
+type MeasureFunc func(text string, fontSize float32) float32
