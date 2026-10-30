@@ -10,7 +10,7 @@ import (
 
 // Constants
 const (
-	level = 1
+	level = "terminal_office"
 	debug = true
 )
 
@@ -21,8 +21,10 @@ func main() {
 	rl.SetTargetFPS(60)
 
 	g := game.New(debug)
-	err := g.LoadLevel(level)
-	if err != nil {
+	if err := g.LoadLevels("asset/maps"); err != nil {
+		log.Fatalf("error: %+v", err)
+	}
+	if err := g.LoadLevel(level); err != nil {
 		log.Fatalf("error: %+v", err)
 	}
 
