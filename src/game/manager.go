@@ -2,12 +2,14 @@ package game
 
 import (
 	"fmt"
+	"log"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"thirty.nights/src/camera"
 	"thirty.nights/src/dialogue"
 	"thirty.nights/src/objects"
 	"thirty.nights/src/player"
+	"thirty.nights/src/ui"
 	"thirty.nights/src/world"
 )
 
@@ -96,7 +98,7 @@ func (g *Game) updateDialogue(dt float32, in Input) {
 func (g *Game) startDialogue(id string) {
 	def, ok := g.Dialogues.Get(id)
 	if !ok {
-		fmt.Errorf("dialogue: unkown id %q", id)
+		log.Printf("dialogue: unknown id %q", id)
 		return
 	}
 
@@ -141,6 +143,12 @@ func (g *Game) DrawUI() {
 	if g.Debug {
 		rl.DrawFPS(0, 0)
 	}
+
+	if g.mode == ModeDialogue && g.Dialogue != nil {
+		g.drawDialogue()
+		return
+	}
+
 	if g.ActiveInteractable != nil {
 		prompt := g.ActiveInteractable.Prompt()
 		if aware, ok := g.ActiveInteractable.(world.PlayerAwareInteractable); ok {
@@ -150,6 +158,16 @@ func (g *Game) DrawUI() {
 		anchor = rl.GetWorldToScreen2D(anchor, g.Cam.View)
 		rl.DrawText(prompt, int32(anchor.X), int32(anchor.Y), 20, rl.White)
 	}
+}
+
+func (g *Game) drawDialogue() {
+	snap := g.Dialogue.Snapshot()
+	l := dialogue.Compute(float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()), ui.Measure, snap.Speaker, snap.Text)
+
+	g.Dialogue.SetPages(l.Ranges())
+	snap = g.Dialogue.Snapshot()
+
+	ui.DrawDialogue(snap, l)
 }
 
 func (g *Game) LoadLevels(dir string) error {
@@ -219,5 +237,5 @@ func (m Mode) String() string {
 	case ModeDialogue:
 		return "Dialogue"
 	}
-	return "Unkown"
+	return "Unknown"
 }

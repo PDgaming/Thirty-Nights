@@ -44,6 +44,7 @@ type Session struct {
 
 type Snapshot struct {
 	Node       string
+	Text       string
 	Speaker    string
 	PageText   string
 	Visible    string

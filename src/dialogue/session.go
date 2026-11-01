@@ -96,6 +96,7 @@ func (s *Session) Snapshot() Snapshot {
 	node := s.def.Nodes[s.node]
 
 	snap.Node = s.node
+	snap.Text = string(s.runes)
 	snap.Speaker = node.Speaker
 	snap.PageText = string(s.runes[page.Start:page.End])
 	end := min(int(s.revealed), page.End)

@@ -39,7 +39,7 @@ func Compute(screenWidth, screenHeight float32, measure MeasureFunc, speaker, te
 		return Layout{}
 	}
 
-	panelHeight := max(screenHeight*0.38, 110)
+	panelHeight := max(screenHeight*0.30, 110)
 	panelHeight = min(panelHeight, screenHeight-2*margin)
 	if panelHeight < 1 {
 		return Layout{}
