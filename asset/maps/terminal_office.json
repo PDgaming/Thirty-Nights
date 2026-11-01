@@ -6222,8 +6222,8 @@
       "id": "intro_trigger",
       "type": "trigger",
       "layer": "structure",
-      "x": 46,
-      "y": 28,
+      "x": 34,
+      "y": 22,
       "properties": {
         "dialogueId": "terminal_intro"
       }

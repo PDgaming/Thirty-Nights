@@ -62,6 +62,11 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 		}
 		if canActivate {
 			g.ActiveInteractable.Interact()
+
+			if talker, ok := g.ActiveInteractable.(world.DialogueInteractable); ok {
+				g.RequestDialogue(talker.DialogueID())
+				return
+			}
 			if seat, ok := g.ActiveInteractable.(*objects.Seat); ok {
 				switch {
 				case seat.Occupied && !g.Player.Sitting:
@@ -198,6 +203,11 @@ func (g *Game) LoadLevel(id string) (err error) {
 	}
 	if mapData.Spawn.Y < 0 || mapData.Spawn.Y > mapData.Height {
 		return fmt.Errorf("invalid Y spawn point in level %q: %+v", id, mapData.Spawn)
+	}
+
+	// check for valid dialogues
+	if err := CheckDialogues(mapData, g.Dialogues); err != nil {
+		return fmt.Errorf("invalid dialogue references in level %q: %w", id, err)
 	}
 
 	g.currentLevel = id

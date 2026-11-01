@@ -37,11 +37,6 @@ func main() {
 	for !rl.WindowShouldClose() {
 		dt := rl.GetFrameTime()
 
-		// Temporary
-		if rl.IsKeyPressed(rl.KeyT) {
-			g.RequestDialogue(dialogue)
-		}
-
 		g.Update(dt)
 
 		voidTile, ok := g.Map.TileDefAt("void")
