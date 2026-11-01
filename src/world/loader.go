@@ -11,8 +11,10 @@ import (
 )
 
 var (
-	_ Interactable = (*objects.Door)(nil)
-	_ Interactable = (*objects.Seat)(nil)
+	_ Interactable         = (*objects.Door)(nil)
+	_ Interactable         = (*objects.Seat)(nil)
+	_ Interactable         = (*objects.Trigger)(nil)
+	_ DialogueInteractable = (*objects.Trigger)(nil)
 )
 
 func LoadDir(dir string) (Catalog, error) {
@@ -102,6 +104,12 @@ func (m *MapData) BuildObjects() error {
 			}
 			color := HexToRlColor(tileDef.Visual.Color)
 			m.ObjectsByID[object.ID] = objects.NewSeat(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, color, object.Properties)
+		case "trigger":
+			trigger, err := objects.NewTrigger(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, object.Properties)
+			if err != nil {
+				return fmt.Errorf("failed to create trigger %q: %w", object.ID, err)
+			}
+			m.ObjectsByID[object.ID] = trigger
 		default:
 			return fmt.Errorf("unknown object type: %s", object.Type)
 		}

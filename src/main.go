@@ -13,6 +13,7 @@ const (
 	mapDir      = "asset/maps"
 	dialogueDir = "asset/dialogues"
 	level       = "terminal_office"
+	dialogue    = "terminal_intro"
 	debug       = true
 )
 
@@ -38,7 +39,7 @@ func main() {
 
 		// Temporary
 		if rl.IsKeyPressed(rl.KeyT) {
-			g.RequestDialogue(level)
+			g.RequestDialogue(dialogue)
 		}
 
 		g.Update(dt)

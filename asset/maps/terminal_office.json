@@ -6217,6 +6217,16 @@
         "locked": true,
         "open": false
       }
+    },
+    {
+      "id": "intro_trigger",
+      "type": "trigger",
+      "layer": "structure",
+      "x": 46,
+      "y": 28,
+      "properties": {
+        "dialogueId": "terminal_intro"
+      }
     }
   ],
   "spawn": {

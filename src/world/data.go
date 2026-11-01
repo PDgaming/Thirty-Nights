@@ -66,6 +66,11 @@ type Interactable interface {
 	PromptAnchor() rl.Vector2
 	CanInteractRect(rect rl.Rectangle) bool
 }
+
+type DialogueInteractable interface {
+	DialogueID() string
+}
+
 type ObjectType interface {
 	Update(dt float32)
 	Draw(debug bool)
