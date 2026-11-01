@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"thirty.nights/src/npc"
 	"thirty.nights/src/objects"
 )
 
@@ -15,6 +16,7 @@ var (
 	_ Interactable         = (*objects.Seat)(nil)
 	_ Interactable         = (*objects.Trigger)(nil)
 	_ DialogueInteractable = (*objects.Trigger)(nil)
+	_ ObjectType           = (*npc.NPC)(nil)
 )
 
 func LoadDir(dir string) (Catalog, error) {
@@ -110,6 +112,16 @@ func (m *MapData) BuildObjects() error {
 				return fmt.Errorf("failed to create trigger %q: %w", object.ID, err)
 			}
 			m.ObjectsByID[object.ID] = trigger
+		case "npc":
+			color := npc.DefaultColor
+			if raw, ok := object.Properties["color"].(string); ok && IsValidHexColor(raw) {
+				color = HexToRlColor(raw)
+			}
+			n, err := npc.NewNPC(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, color, object.Properties)
+			if err != nil {
+				return fmt.Errorf("failed to create npc %q: %w", object.ID, err)
+			}
+			m.ObjectsByID[object.ID] = n
 		default:
 			return fmt.Errorf("unknown object type: %s", object.Type)
 		}
