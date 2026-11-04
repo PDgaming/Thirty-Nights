@@ -373,6 +373,53 @@ describe('object editing', () => {
 		expect(editor.updateObject(first.id, { x: second.x, y: second.y })).toBe(false);
 		expect(first).toMatchObject({ x: 1, y: 1 });
 	});
+
+	it('moves a dragged object to the snapped drop cell', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+
+		expect(editor.beginObjectDrag(object.id)).toBe(true);
+		editor.dragObjectTo(4, 5);
+		expect(editor.dragTarget).toEqual({ x: 4, y: 5 });
+		// The map only changes once the drag is released.
+		expect(object).toMatchObject({ x: 1, y: 1 });
+
+		expect(editor.endObjectDrag()).toBe(true);
+		expect(object).toMatchObject({ x: 4, y: 5 });
+		expect(editor.draggingObjectId).toBeNull();
+		expect(editor.dragTarget).toBeNull();
+	});
+
+	it('cancels a drag or ignores targets outside the map', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+
+		editor.beginObjectDrag(object.id);
+		editor.dragObjectTo(-1, 5);
+		expect(editor.dragTarget).toBeNull();
+		expect(editor.endObjectDrag()).toBe(false);
+		expect(object).toMatchObject({ x: 1, y: 1 });
+
+		editor.beginObjectDrag(object.id);
+		editor.dragObjectTo(3, 3);
+		expect(editor.endObjectDrag(false)).toBe(false);
+		expect(object).toMatchObject({ x: 1, y: 1 });
+	});
+
+	it('keeps the object in place when dropped on a cell taken by the same type', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		placeDoor(editor, 2, 2);
+		const [first, second] = editor.map.objects;
+
+		editor.beginObjectDrag(first.id);
+		editor.dragObjectTo(second.x, second.y);
+		expect(editor.endObjectDrag()).toBe(false);
+		expect(first).toMatchObject({ x: 1, y: 1 });
+		expect(second).toMatchObject({ x: 2, y: 2 });
+	});
 });
 
 describe('object attributes', () => {
@@ -444,7 +491,7 @@ describe('npc authoring', () => {
 		expect(editor.objectTypes.find((type) => type.id === 'npc')?.attributes).toEqual([
 			{ name: 'name', type: 'string' },
 			{ name: 'dialogueId', type: 'string' },
-			{ name: 'color', type: 'string', default: '#e8a87c' },
+			{ name: 'color', type: 'color', default: '#e8a87c' },
 			{ name: 'facing', type: 'string', default: 'down' },
 			{ name: 'solid', type: 'boolean', default: true }
 		]);

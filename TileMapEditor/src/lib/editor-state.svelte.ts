@@ -98,7 +98,7 @@ export interface Notice {
 }
 
 /** Value types an object attribute can map to in the exported `properties`. */
-export const OBJECT_ATTRIBUTE_TYPES = ['string', 'number', 'boolean'] as const;
+export const OBJECT_ATTRIBUTE_TYPES = ['string', 'number', 'boolean', 'color'] as const;
 export type ObjectAttributeType = (typeof OBJECT_ATTRIBUTE_TYPES)[number];
 
 export function isObjectAttributeType(value: unknown): value is ObjectAttributeType {
@@ -109,6 +109,7 @@ export function isObjectAttributeType(value: unknown): value is ObjectAttributeT
 export function defaultValueForAttribute(type: ObjectAttributeType): unknown {
 	if (type === 'number') return 0;
 	if (type === 'boolean') return false;
+	if (type === 'color') return '#ffffff';
 	return '';
 }
 
@@ -142,7 +143,7 @@ const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [
 		attributes: [
 			{ name: 'name', type: 'string' },
 			{ name: 'dialogueId', type: 'string' },
-			{ name: 'color', type: 'string', default: '#e8a87c' },
+			{ name: 'color', type: 'color', default: '#e8a87c' },
 			{ name: 'facing', type: 'string', default: 'down' },
 			{ name: 'solid', type: 'boolean', default: true }
 		]
@@ -248,6 +249,9 @@ export class EditorState {
 	leftPanelTab = $state<LeftPanelTab>('map');
 	editingObjectId = $state<string | null>(null);
 	selectedCell = $state<CellPosition | null>(null);
+	/** Object being dragged, plus the snapped cell it would land on. */
+	draggingObjectId = $state<string | null>(null);
+	dragTarget = $state<CellPosition | null>(null);
 	hiddenLayers = $state<string[]>([]);
 
 	/** Assigning a tile clears any object selection, and vice versa. */
@@ -625,6 +629,8 @@ export class EditorState {
 		this.tileBindings = { ...snapshot.tileBindings };
 		this.autoTileColors = { ...snapshot.autoTileColors };
 		this.objectTypes = cloneObjectTypes(snapshot.objectTypes);
+		this.draggingObjectId = null;
+		this.dragTarget = null;
 		this.mapEpoch += 1;
 		this.mapRevision += 1;
 		this.schedulePersist();
@@ -871,6 +877,8 @@ export class EditorState {
 		this.activeObjectTypeId = null;
 		this.editingObjectId = null;
 		this.selectedCell = null;
+		this.draggingObjectId = null;
+		this.dragTarget = null;
 		this.objectTypes = cloneObjectTypes(DEFAULT_OBJECT_TYPES);
 		this.autoTileColors = {};
 		this.hiddenLayers = [];
@@ -895,6 +903,8 @@ export class EditorState {
 		this.activeObjectTypeId = null;
 		this.editingObjectId = null;
 		this.selectedCell = null;
+		this.draggingObjectId = null;
+		this.dragTarget = null;
 		this.objectTypes = objectTypesForMap(map);
 		this.autoTileColors = {};
 		this.tileBindings = {};
@@ -1249,6 +1259,41 @@ export class EditorState {
 		this.map = { ...this.map, objects: [...this.map.objects] };
 		this.commit();
 		return true;
+	}
+
+	/**
+	 * Start dragging an object. The move is only applied on drop, so the whole
+	 * drag becomes a single undo step.
+	 */
+	beginObjectDrag(id: string): boolean {
+		const object = this.map.objects.find((item) => item.id === id);
+		if (!object) return false;
+		this.draggingObjectId = id;
+		this.dragTarget = { x: object.x, y: object.y };
+		return true;
+	}
+
+	/** Snap the drag preview to a cell; targets outside the map are ignored. */
+	dragObjectTo(x: number, y: number): void {
+		if (this.draggingObjectId === null) return;
+		this.dragTarget = inBounds(this.map, x, y) ? { x, y } : null;
+	}
+
+	/**
+	 * Finish a drag. Passing `false` cancels and leaves the object where it
+	 * started. Returns true only when the object actually moved.
+	 */
+	endObjectDrag(place = true): boolean {
+		const id = this.draggingObjectId;
+		const target = this.dragTarget;
+		this.draggingObjectId = null;
+		this.dragTarget = null;
+		if (!place || id === null || target === null) return false;
+
+		const object = this.map.objects.find((item) => item.id === id);
+		if (!object) return false;
+		if (object.x === target.x && object.y === target.y) return false;
+		return this.updateObject(id, { x: target.x, y: target.y });
 	}
 
 	addObjectType(id: string, color: string): boolean {

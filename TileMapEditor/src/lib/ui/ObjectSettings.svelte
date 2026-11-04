@@ -5,6 +5,7 @@
 		type EditorState,
 		type ObjectAttributeDef
 	} from '#lib/editor-state.svelte';
+	import { isValidHexColor } from '#lib/map-validation';
 
 	let { editor, objectId }: { editor: EditorState; objectId: string } = $props();
 
@@ -32,8 +33,19 @@
 		const matches =
 			(attribute.type === 'number' && typeof current === 'number') ||
 			(attribute.type === 'boolean' && typeof current === 'boolean') ||
-			(attribute.type === 'string' && typeof current === 'string');
+			((attribute.type === 'string' || attribute.type === 'color') &&
+				typeof current === 'string');
 		return matches ? current : defaultAttributeValue(attribute);
+	}
+
+	/** `<input type="color">` only accepts #rrggbb, so widen shorthand values. */
+	function pickerColor(value: string): string {
+		if (/^#[0-9a-fA-F]{6}$/.test(value)) return value;
+		if (/^#[0-9a-fA-F]{3}$/.test(value)) {
+			return `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
+		}
+		if (/^#[0-9a-fA-F]{8}$/.test(value)) return value.slice(0, 7);
+		return '#ffffff';
 	}
 
 	function persist() {
@@ -59,6 +71,10 @@
 			}
 			if (attribute.type === 'string' && typeof value !== 'string') {
 				error = `"${attribute.name}" must be text.`;
+				return;
+			}
+			if (attribute.type === 'color' && !isValidHexColor(value)) {
+				error = `"${attribute.name}" must be #rgb, #rrggbb, or #rrggbbaa.`;
 				return;
 			}
 			properties[attribute.name] = value;
@@ -166,7 +182,7 @@
 						This object type has no attributes yet.
 					</p>
 				{:else}
-					<div class="flex flex-col gap-2">
+					<div class="grid grid-cols-2 gap-2">
 						{#each attributes as attribute (attribute.name)}
 							<label class="block">
 								<span class="mb-0.5 flex items-center justify-between gap-2">
@@ -195,6 +211,24 @@
 										onfocus={beginEdit}
 										onblur={endEdit}
 									/>
+								{:else if attribute.type === 'color'}
+									<div class="flex items-center gap-1.5">
+										<input
+											type="color"
+											value={pickerColor(String(values[attribute.name] ?? ''))}
+											title={`${attribute.name} colour`}
+											oninput={(event) => updateString(attribute.name, event)}
+											onfocus={beginEdit}
+											onblur={endEdit}
+										/>
+										<input
+											class="field-sm mono min-w-0 flex-1"
+											value={String(values[attribute.name] ?? '')}
+											oninput={(event) => updateString(attribute.name, event)}
+											onfocus={beginEdit}
+											onblur={endEdit}
+										/>
+									</div>
 								{:else}
 									<input
 										class="field-sm mono"

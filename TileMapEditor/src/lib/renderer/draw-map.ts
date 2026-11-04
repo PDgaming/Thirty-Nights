@@ -26,6 +26,8 @@ export interface MapRenderOptions {
 	activeObjectTypeId: string | null;
 	objectColors: Record<string, string>;
 	selectedCell: CellPosition | null;
+	draggingObjectId: string | null;
+	dragTarget: CellPosition | null;
 	tool: EditorTool;
 }
 
@@ -88,6 +90,7 @@ export function drawMap(options: MapRenderOptions): void {
 	ctx.strokeRect(mapX + 1.5, mapY + 1.5, mapWidth - 3, mapHeight - 3);
 
 	drawObjects(options, tilePx);
+	drawObjectDrag(options, tilePx);
 	drawSpawn(options, tilePx);
 	drawHover(options, tilePx);
 }
@@ -194,7 +197,7 @@ function drawGrid(
 }
 
 function drawObjects(options: MapRenderOptions, tilePx: number): void {
-	const { ctx, map, view, objectColors, hover, tool } = options;
+	const { ctx, map, view, objectColors, hover, tool, draggingObjectId } = options;
 	let hoveredId: string | null = null;
 	if (hover) {
 		for (let index = map.objects.length - 1; index >= 0; index -= 1) {
@@ -210,9 +213,52 @@ function drawObjects(options: MapRenderOptions, tilePx: number): void {
 		const px = view.offsetX + object.x * tilePx;
 		const py = view.offsetY + object.y * tilePx;
 		const size = Math.ceil(tilePx);
-		drawObjectMarker(ctx, px, py, size, objectColors[object.type] ?? OBJECT, 0.92);
-		if (tool === 'select' && object.id === hoveredId) drawObjectFocus(ctx, px, py, size);
+		const isDragging = object.id === draggingObjectId;
+		drawObjectMarker(
+			ctx,
+			px,
+			py,
+			size,
+			objectColors[object.type] ?? OBJECT,
+			isDragging ? 0.25 : 0.92
+		);
+		if (!isDragging && tool === 'select' && object.id === hoveredId) {
+			drawObjectFocus(ctx, px, py, size);
+		}
 	}
+}
+
+/** Dashed snapped-cell preview and ghost marker while an object is dragged. */
+function drawObjectDrag(options: MapRenderOptions, tilePx: number): void {
+	const { ctx, map, view, objectColors, draggingObjectId, dragTarget } = options;
+	if (draggingObjectId === null || dragTarget === null) return;
+	if (
+		dragTarget.x < 0 ||
+		dragTarget.y < 0 ||
+		dragTarget.x >= map.width ||
+		dragTarget.y >= map.height
+	) {
+		return;
+	}
+
+	const object = map.objects.find((item) => item.id === draggingObjectId);
+	if (!object) return;
+
+	const px = view.offsetX + dragTarget.x * tilePx;
+	const py = view.offsetY + dragTarget.y * tilePx;
+	const size = Math.ceil(tilePx);
+
+	ctx.save();
+	ctx.fillStyle = 'rgba(111, 159, 216, 0.16)';
+	ctx.fillRect(px, py, size, size);
+	ctx.strokeStyle = ACCENT;
+	ctx.lineWidth = 2;
+	ctx.setLineDash([4, 3]);
+	ctx.strokeRect(px + 1, py + 1, size - 2, size - 2);
+	ctx.restore();
+
+	drawObjectMarker(ctx, px, py, size, objectColors[object.type] ?? OBJECT, 0.92);
+	drawObjectFocus(ctx, px, py, size);
 }
 
 function drawSelection(options: MapRenderOptions, tilePx: number): void {
@@ -323,9 +369,11 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 		objectColors,
 		hiddenLayers,
 		showTilesetArt,
-		tileset
+		tileset,
+		draggingObjectId
 	} = options;
 	if (!hover) return;
+	if (draggingObjectId !== null) return;
 	if (hover.x < 0 || hover.y < 0 || hover.x >= map.width || hover.y >= map.height) return;
 
 	const px = view.offsetX + hover.x * tilePx;

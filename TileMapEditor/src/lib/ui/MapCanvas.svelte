@@ -59,6 +59,8 @@
 			activeObjectTypeId: editor.activeObjectTypeId,
 			objectColors: editor.objectColors,
 			selectedCell: editor.selectedCell,
+			draggingObjectId: editor.draggingObjectId,
+			dragTarget: editor.dragTarget,
 			tool: editor.tool
 		});
 	}
@@ -89,6 +91,10 @@
 
 		function keyDown(event: KeyboardEvent) {
 			if (editableTarget(event.target)) return;
+			if (event.code === 'Escape' && editor.draggingObjectId) {
+				editor.endObjectDrag(false);
+				return;
+			}
 			if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.code === 'KeyZ') {
 				event.preventDefault();
 				editor.undo();
@@ -198,6 +204,8 @@
 			editor.activeObjectTypeId,
 			editor.objectTypes,
 			editor.selectedCell,
+			editor.draggingObjectId,
+			editor.dragTarget,
 			editor.tool,
 			width,
 			height
@@ -234,7 +242,13 @@
 
 		const cell = cellFromEvent(event);
 		if (editor.tool === 'select') {
-			if (!alternateTool) editor.selectCell(cell.x, cell.y);
+			if (!alternateTool) {
+				const object = editor.objectAtCell(cell.x, cell.y);
+				editor.selectCell(cell.x, cell.y);
+				if (object && editor.beginObjectDrag(object.id)) {
+					canvas.setPointerCapture(event.pointerId);
+				}
+			}
 			return;
 		}
 		if (!alternateTool && editor.tool === 'spawn') {
@@ -279,6 +293,11 @@
 			return;
 		}
 
+		if (editor.draggingObjectId) {
+			editor.dragObjectTo(cell.x, cell.y);
+			return;
+		}
+
 		if (isPainting && lastCell && (cell.x !== lastCell.x || cell.y !== lastCell.y)) {
 			if (editor.tool === 'object') {
 				if (eraseStroke) editor.eraseObjectsLine(lastCell, cell);
@@ -298,6 +317,9 @@
 		isPanning = false;
 		isPainting = false;
 		lastCell = null;
+		if (editor.draggingObjectId) {
+			editor.endObjectDrag(event.type !== 'pointercancel');
+		}
 	}
 
 	function handlePointerLeave() {
@@ -305,17 +327,21 @@
 	}
 
 	const cursor = $derived(
-		isPanning
+		editor.draggingObjectId
 			? 'grabbing'
-			: spacePressed
-				? 'grab'
-				: editor.tool === 'spawn'
-					? 'cell'
-					: editor.tool === 'object'
-						? 'copy'
-						: editor.tool === 'select'
-							? 'default'
-							: 'crosshair'
+			: isPanning
+				? 'grabbing'
+				: spacePressed
+					? 'grab'
+					: editor.tool === 'spawn'
+						? 'cell'
+						: editor.tool === 'object'
+							? 'copy'
+							: editor.tool === 'select'
+								? editor.hover && editor.objectAtCell(editor.hover.x, editor.hover.y)
+									? 'grab'
+									: 'default'
+								: 'crosshair'
 	);
 </script>
 
