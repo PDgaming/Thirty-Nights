@@ -38,11 +38,17 @@ type Rectangle struct {
 }
 
 type ObjectData struct {
-	ID         string         `json:"id"`
-	Type       string         `json:"type"`
-	Layer      string         `json:"layer"`
-	X          int            `json:"x"`
-	Y          int            `json:"y"`
+	ID    string `json:"id"`
+	Type  string `json:"type"`
+	Layer string `json:"layer"`
+	X     int    `json:"x"`
+	Y     int    `json:"y"`
+
+	// Width and Height are the object's footprint in tiles.
+	// Missing or zero values mean one tile.
+	Width  int `json:"width"`
+	Height int `json:"height"`
+
 	Properties map[string]any `json:"properties"`
 }
 
