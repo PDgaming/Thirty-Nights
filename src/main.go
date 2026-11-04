@@ -13,7 +13,6 @@ const (
 	mapDir      = "asset/maps"
 	dialogueDir = "asset/dialogues"
 	level       = "terminal_office"
-	dialogue    = "terminal_intro"
 	debug       = true
 )
 

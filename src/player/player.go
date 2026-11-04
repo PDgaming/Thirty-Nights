@@ -10,7 +10,7 @@ import (
 func New(x, y float32) *Player {
 	p := &Player{
 		Position: rl.Vector2{X: x, Y: y},
-		Speed:    130,
+		Speed:    100,
 		Size:     rl.Vector2{X: 12, Y: 14},
 		Facing:   rl.Vector2{X: -1, Y: 0},
 		Animator: *NewAnimator(),
