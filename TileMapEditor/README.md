@@ -38,7 +38,11 @@ bun run build
 7. In the **Objects** tab, create object types and click a type to place it.
    Objects go into the map's `objects` list, not into layer grids. Drag places a
    line of objects; right-click or **Erase** removes them.
-8. Fix anything listed under **Validate & export**, then export the JSON.
+8. New maps include an **npc** type with `name`, `dialogueId`, `color`, `facing`,
+   and `solid` attributes. Place one, then fill in its properties in the
+   **Object** tab on the left. The game reads the same type from `objects` and
+   from the top-level `npcs` array, so both authoring styles load.
+9. Fix anything listed under **Validate & export**, then export the JSON.
 
 Mouse wheel zooms around the pointer. Middle-drag or space-drag pans.
 Right-click applies the alternate tool: paint erases, erase paints.
@@ -79,6 +83,10 @@ Export mirrors the Go structs in `src/world/data.go`:
   `grid[y][x]` and `""` for empty cells
 - `objects`: `{ id, type, layer, x, y, properties }`
 - `spawn`: `{ x, y }`
+
+The game also accepts a top-level `npcs` array of typeless objects. Import
+merges those entries into the editor's object list with `type: "npc"`, and
+export writes them back through `objects`; the loader handles both forms.
 
 Rooms are no longer emitted or read. The Go loader ignores a missing `rooms`
 field, and leftover `room_id` properties on imported objects round-trip

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import {
-		defaultValueForAttribute,
+		defaultAttributeValue,
 		type EditorState,
 		type ObjectAttributeDef
 	} from '#lib/editor-state.svelte';
@@ -33,7 +33,7 @@
 			(attribute.type === 'number' && typeof current === 'number') ||
 			(attribute.type === 'boolean' && typeof current === 'boolean') ||
 			(attribute.type === 'string' && typeof current === 'string');
-		return matches ? current : defaultValueForAttribute(attribute.type);
+		return matches ? current : defaultAttributeValue(attribute);
 	}
 
 	function persist() {

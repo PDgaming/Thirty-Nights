@@ -436,6 +436,78 @@ describe('object attributes', () => {
 	});
 });
 
+describe('npc authoring', () => {
+	it('starts new maps with the npc palette entry and its authoring defaults', () => {
+		const editor = new EditorState();
+
+		expect(editor.objectTypes.map((type) => type.id)).toEqual(['door', 'npc']);
+		expect(editor.objectTypes.find((type) => type.id === 'npc')?.attributes).toEqual([
+			{ name: 'name', type: 'string' },
+			{ name: 'dialogueId', type: 'string' },
+			{ name: 'color', type: 'string', default: '#e8a87c' },
+			{ name: 'facing', type: 'string', default: 'down' },
+			{ name: 'solid', type: 'boolean', default: true }
+		]);
+	});
+
+	it('places npcs with defaults and exports them through the object list', () => {
+		const editor = new EditorState();
+		editor.selectObjectType('npc');
+		editor.placeObjectLine({ x: 3, y: 4 }, { x: 3, y: 4 });
+
+		const object = editor.map.objects[0];
+		expect(object).toMatchObject({ type: 'npc', layer: 'floor', x: 3, y: 4 });
+		expect(object.properties).toEqual({
+			name: '',
+			dialogueId: '',
+			color: '#e8a87c',
+			facing: 'down',
+			solid: true
+		});
+
+		const exported = JSON.parse(mapToJson(editor.map)) as {
+			objects: { type: string; properties: Record<string, unknown> }[];
+		};
+		expect(exported.objects[0]).toMatchObject({
+			type: 'npc',
+			properties: {
+				name: '',
+				dialogueId: '',
+				color: '#e8a87c',
+				facing: 'down',
+				solid: true
+			}
+		});
+	});
+
+	it('keeps npc authoring defaults after loading a map with npcs', () => {
+		const editor = new EditorState();
+		editor.map.objects = [
+			{
+				id: 'receptionist',
+				type: 'npc',
+				layer: 'floor',
+				x: 1,
+				y: 1,
+				properties: { dialogueId: 'terminal_intro' }
+			}
+		];
+		editor.loadMap(editor.map);
+
+		editor.selectObjectType('npc');
+		editor.placeObjectLine({ x: 2, y: 2 }, { x: 2, y: 2 });
+		const placed = editor.map.objects.find((object) => object.x === 2 && object.y === 2);
+
+		expect(placed?.properties).toMatchObject({
+			name: '',
+			dialogueId: '',
+			color: '#e8a87c',
+			facing: 'down',
+			solid: true
+		});
+	});
+});
+
 describe('map schema', () => {
 	afterEach(() => {
 		vi.unstubAllGlobals();

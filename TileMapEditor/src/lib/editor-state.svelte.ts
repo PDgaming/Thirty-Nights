@@ -116,6 +116,15 @@ export function defaultValueForAttribute(type: ObjectAttributeType): unknown {
 export interface ObjectAttributeDef {
 	name: string;
 	type: ObjectAttributeType;
+	/** Value used for newly placed objects when it differs from the type default. */
+	default?: unknown;
+}
+
+/** Starting value for an attribute, honouring a palette-level default. */
+export function defaultAttributeValue(attribute: ObjectAttributeDef): unknown {
+	return attribute.default === undefined
+		? defaultValueForAttribute(attribute.type)
+		: structuredClone(attribute.default);
 }
 
 /** Editor-side object palette entry. Object types are not exported. */
@@ -125,7 +134,20 @@ export interface ObjectTypeDef {
 	attributes: ObjectAttributeDef[];
 }
 
-const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [{ id: 'door', color: '#9a7047', attributes: [] }];
+const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [
+	{ id: 'door', color: '#9a7047', attributes: [] },
+	{
+		id: 'npc',
+		color: '#2ec4b6',
+		attributes: [
+			{ name: 'name', type: 'string' },
+			{ name: 'dialogueId', type: 'string' },
+			{ name: 'color', type: 'string', default: '#e8a87c' },
+			{ name: 'facing', type: 'string', default: 'down' },
+			{ name: 'solid', type: 'boolean', default: true }
+		]
+	}
+];
 const OBJECT_MARKER_COLORS = ['#f472b6', '#60a5fa', '#4ade80', '#c084fc', '#facc15', '#fb923c'];
 
 function cloneObjectTypes(types: ObjectTypeDef[]): ObjectTypeDef[] {
@@ -141,15 +163,22 @@ function attributeTypeOf(value: unknown): ObjectAttributeType {
 	return 'string';
 }
 
-/** Rebuild the object palette from the types used by an imported map. */
+/**
+ * Rebuild the object palette from the default types plus any types used by an
+ * imported map. Known types keep their authoring defaults, while properties
+ * seen only in the map are added to the palette so they stay editable.
+ */
 function objectTypesForMap(map: GameMap): ObjectTypeDef[] {
-	const ids: string[] = [];
+	const ids = DEFAULT_OBJECT_TYPES.map((type) => type.id);
 	for (const object of map.objects) {
 		if (!ids.includes(object.type)) ids.push(object.type);
 	}
-	if (ids.length === 0) ids.push('door');
+
 	return ids.map((id, index) => {
-		const attributes: ObjectAttributeDef[] = [];
+		const base = DEFAULT_OBJECT_TYPES.find((type) => type.id === id);
+		const attributes: ObjectAttributeDef[] = base
+			? base.attributes.map((attribute) => ({ ...attribute }))
+			: [];
 		for (const object of map.objects) {
 			if (object.type !== id) continue;
 			for (const [name, value] of Object.entries(object.properties)) {
@@ -160,7 +189,9 @@ function objectTypesForMap(map: GameMap): ObjectTypeDef[] {
 		return {
 			id,
 			color:
-				map.tiles[id]?.visual.color ?? OBJECT_MARKER_COLORS[index % OBJECT_MARKER_COLORS.length],
+				map.tiles[id]?.visual.color ??
+				base?.color ??
+				OBJECT_MARKER_COLORS[index % OBJECT_MARKER_COLORS.length],
 			attributes
 		};
 	});
@@ -1270,7 +1301,7 @@ export class EditorState {
 	private defaultPropertiesForType(type: ObjectTypeDef): Record<string, unknown> {
 		const properties: Record<string, unknown> = {};
 		for (const attribute of type.attributes) {
-			properties[attribute.name] = defaultValueForAttribute(attribute.type);
+			properties[attribute.name] = defaultAttributeValue(attribute);
 		}
 		return properties;
 	}
@@ -1284,7 +1315,7 @@ export class EditorState {
 			if (object.type !== typeId) continue;
 			for (const attribute of type.attributes) {
 				if (!Object.prototype.hasOwnProperty.call(object.properties, attribute.name)) {
-					object.properties[attribute.name] = defaultValueForAttribute(attribute.type);
+					object.properties[attribute.name] = defaultAttributeValue(attribute);
 				}
 			}
 			for (const name of Object.keys(object.properties)) {
@@ -1367,7 +1398,7 @@ export class EditorState {
 				? {
 						...item,
 						attributes: item.attributes.map((attribute) =>
-							attribute.name === name ? { ...attribute, type } : attribute
+							attribute.name === name ? { name: attribute.name, type } : attribute
 						)
 					}
 				: item

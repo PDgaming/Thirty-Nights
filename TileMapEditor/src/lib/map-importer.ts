@@ -82,7 +82,12 @@ export function parseMapData(raw: unknown): GameMap {
 
 	const tiles = parseTiles(raw.tiles);
 	const layers = parseLayers(raw.layers, width, height);
-	const objects = parseObjects(raw.objects);
+	// The game keeps NPCs in a dedicated `npcs` array but merges them into the
+	// object pipeline at load. The editor uses that same single pipeline.
+	const objects = [
+		...parseObjectList(raw.objects, 'objects'),
+		...parseObjectList(raw.npcs, 'npcs', 'npc')
+	];
 	const spawn = parseSpawn(raw.spawn);
 
 	return {
@@ -159,12 +164,16 @@ function parseGrid(value: unknown, width: number, height: number, path: string):
 	});
 }
 
-function parseObjects(value: unknown): ObjectData[] {
+/**
+ * Parse an object array. `forcedType` supports the game's typeless `npcs`
+ * array, where the loader stamps the type at load time.
+ */
+function parseObjectList(value: unknown, key: string, forcedType?: string): ObjectData[] {
 	if (value === undefined) return [];
-	if (!Array.isArray(value)) fail('objects', 'must be an array');
+	if (!Array.isArray(value)) fail(key, 'must be an array');
 
 	return value.map((rawObject, index) => {
-		const path = `objects[${index}]`;
+		const path = `${key}[${index}]`;
 		if (!isRecord(rawObject)) fail(path, 'must be an object');
 
 		let properties: Record<string, unknown> = {};
@@ -175,7 +184,7 @@ function parseObjects(value: unknown): ObjectData[] {
 
 		return {
 			id: readString(rawObject.id, `${path}.id`),
-			type: readString(rawObject.type, `${path}.type`),
+			type: forcedType ?? readString(rawObject.type, `${path}.type`),
 			layer: readString(rawObject.layer, `${path}.layer`),
 			x: readInteger(rawObject.x, `${path}.x`),
 			y: readInteger(rawObject.y, `${path}.y`),

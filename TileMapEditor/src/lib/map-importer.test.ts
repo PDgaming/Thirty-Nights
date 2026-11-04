@@ -102,7 +102,9 @@ describe('parseMapJson', () => {
 	});
 
 	it('parses the existing game map from the repository', () => {
-		const path = fileURLToPath(new URL('../../../asset/maps/1.json', import.meta.url));
+		const path = fileURLToPath(
+			new URL('../../../asset/maps/terminal_office.json', import.meta.url)
+		);
 		const source = readFileSync(path, 'utf8');
 		const raw = JSON.parse(source) as {
 			id: string;
@@ -110,6 +112,7 @@ describe('parseMapJson', () => {
 			height: number;
 			layers: Array<{ id: string }>;
 			objects: unknown[];
+			npcs?: unknown[];
 		};
 		const parsed = parseMapJson(source);
 
@@ -117,8 +120,46 @@ describe('parseMapJson', () => {
 		expect(parsed.width).toBe(raw.width);
 		expect(parsed.height).toBe(raw.height);
 		expect(parsed.layers.map((layer) => layer.id)).toEqual(raw.layers.map((layer) => layer.id));
-		expect(parsed.objects).toHaveLength(raw.objects.length);
+		expect(parsed.objects).toHaveLength(raw.objects.length + (raw.npcs?.length ?? 0));
+		expect(parsed.objects.filter((object) => object.type === 'npc')).toHaveLength(
+			raw.npcs?.length ?? 0
+		);
 		expect(parsed).not.toHaveProperty('rooms');
+	});
+
+	it('merges the game npcs array into the shared object list', () => {
+		const parsed = parseMapData(
+			baseRaw({
+				objects: [{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 0 }],
+				npcs: [
+					{
+						id: 'receptionist',
+						layer: 'floor',
+						x: 2,
+						y: 0,
+						properties: { dialogueId: 'intro' }
+					}
+				]
+			})
+		);
+
+		expect(parsed.objects).toEqual([
+			{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 0, properties: {} },
+			{
+				id: 'receptionist',
+				type: 'npc',
+				layer: 'floor',
+				x: 2,
+				y: 0,
+				properties: { dialogueId: 'intro' }
+			}
+		]);
+	});
+
+	it('rejects malformed npc entries', () => {
+		expect(() => parseMapData(baseRaw({ npcs: [{ layer: 'floor', x: 0, y: 0 }] }))).toThrow(
+			'npcs[0].id'
+		);
 	});
 
 	it('defaults missing object properties', () => {
