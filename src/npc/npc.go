@@ -51,6 +51,10 @@ func NewNPC(id string, x, y, tileSize int, color rl.Color, properties map[string
 		n.solid = solid
 	}
 
+	if ip, ok := properties["interactionPadding"].(float64); ok {
+		n.interactionPadding = int(ip) * tileSize
+	}
+
 	return n, nil
 }
 
@@ -139,11 +143,15 @@ func (n *NPC) PromptAnchor() rl.Vector2 {
 }
 
 func (n *NPC) InteractionRect() rl.Rectangle {
+	pad := float32(n.interactionPadding)
+	if pad <= 0 {
+		pad = float32(interactionPadding)
+	}
 	return rl.Rectangle{
-		X:      n.Bounds.X - interactionPadding,
-		Y:      n.Bounds.Y - interactionPadding,
-		Width:  n.Bounds.Width + interactionPadding*2,
-		Height: n.Bounds.Height + interactionPadding*2,
+		X:      n.Bounds.X - pad,
+		Y:      n.Bounds.Y - pad,
+		Width:  n.Bounds.Width + pad*2,
+		Height: n.Bounds.Height + pad*2,
 	}
 }
 
