@@ -16,6 +16,7 @@ var (
 	_ Interactable         = (*objects.Seat)(nil)
 	_ Interactable         = (*objects.Trigger)(nil)
 	_ DialogueInteractable = (*objects.Trigger)(nil)
+	_ DialogueInteractable = (*npc.NPC)(nil)
 	_ ObjectType           = (*npc.NPC)(nil)
 )
 

@@ -8,6 +8,8 @@ import (
 
 var DefaultColor = rl.NewColor(232, 168, 124, 255)
 
+const defaultPrompt = "E - Talk"
+
 func NewNPC(id string, x, y, tileSize int, color rl.Color, properties map[string]any) (*NPC, error) {
 	fx, fy := float32(x), float32(y)
 	fsize := float32(tileSize)
@@ -105,4 +107,46 @@ func (n *NPC) CollisionRect() rl.Rectangle {
 
 func (n *NPC) Solid() bool {
 	return n.solid
+}
+
+func (n *NPC) CanInteractRect(rect rl.Rectangle) bool {
+	return rl.CheckCollisionRecs(rect, n.InteractionRect())
+}
+
+func (n *NPC) CanActivate(_ rl.Rectangle) bool {
+	return true
+}
+
+func (n *NPC) Interact() {}
+
+func (n *NPC) Prompt() string {
+	return n.promptText()
+}
+
+func (n *NPC) PromptFor(_ rl.Rectangle) string {
+	return n.promptText()
+}
+
+func (n *NPC) promptText() string {
+	if n.Name == "" {
+		return defaultPrompt
+	}
+	return "E - Talk to " + n.Name
+}
+
+func (n *NPC) PromptAnchor() rl.Vector2 {
+	return rl.Vector2{X: n.Bounds.X + n.Bounds.Width/2, Y: n.Bounds.Y - 6}
+}
+
+func (n *NPC) InteractionRect() rl.Rectangle {
+	return rl.Rectangle{
+		X:      n.Bounds.X - interactionPadding,
+		Y:      n.Bounds.Y - interactionPadding,
+		Width:  n.Bounds.Width + interactionPadding*2,
+		Height: n.Bounds.Height + interactionPadding*2,
+	}
+}
+
+func (n *NPC) DialogueID() string {
+	return n.dialogueID
 }

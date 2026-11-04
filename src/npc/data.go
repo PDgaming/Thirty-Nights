@@ -2,6 +2,8 @@ package npc
 
 import rl "github.com/gen2brain/raylib-go/raylib"
 
+const interactionPadding = 6
+
 type NPC struct {
 	ID       string
 	Position rl.Vector2
