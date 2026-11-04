@@ -125,11 +125,23 @@ func ValidateObjectProperties(objects []ObjectData, height, width int, objectIDs
 			return fmt.Errorf("object must have a layer")
 		}
 
+		if err := object.ValidateFootprint(); err != nil {
+			return err
+		}
+
 		if object.X < 0 || object.X >= width {
-			return fmt.Errorf("object x must be greater than 0 and less than or equal to map width")
+			return fmt.Errorf("object %q: x must be greater than or equal to 0 and less than map width %d (got %d)", object.ID, width, object.X)
 		}
 		if object.Y < 0 || object.Y >= height {
-			return fmt.Errorf("object y must be greater than 0 and less than or equal to map height")
+			return fmt.Errorf("object %q: y must be greater than or equal to 0 and less than map height %d (got %d)", object.ID, height, object.Y)
+		}
+
+		footprint := object.Footprint()
+		if object.X+footprint.Width > width {
+			return fmt.Errorf("object %q: footprint width %d at x %d exceeds map width %d", object.ID, footprint.Width, object.X, width)
+		}
+		if object.Y+footprint.Height > height {
+			return fmt.Errorf("object %q: footprint height %d at y %d exceeds map height %d", object.ID, footprint.Height, object.Y, height)
 		}
 	}
 	return nil
