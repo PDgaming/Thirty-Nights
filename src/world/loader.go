@@ -68,6 +68,8 @@ func LoadMap(path string) (*MapData, error) {
 		mapData.Layers[i].Collision = mode
 	}
 
+	mapData.MergeNPCs()
+
 	if err := ValidateMap(mapData); err != nil {
 		return nil, fmt.Errorf("world: invalid map data in %s: %w", path, err)
 	}
@@ -127,4 +129,11 @@ func (m *MapData) BuildObjects() error {
 		}
 	}
 	return nil
+}
+
+func (m *MapData) MergeNPCs() {
+	for i := range m.NPCs {
+		m.NPCs[i].Type = "npc"
+	}
+	m.Objects = append(m.Objects, m.NPCs...)
 }

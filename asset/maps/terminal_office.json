@@ -6229,6 +6229,49 @@
       }
     }
   ],
+  "npcs": [
+    {
+      "id": "receptionist",
+      "layer": "structure",
+      "x": 37,
+      "y": 22,
+      "properties": {
+        "name": "Reception",
+        "dialogueId": "terminal_intro",
+        "facing": "left",
+        "color": "#2ec4b6"
+      }
+    },
+    {
+      "id": "guard",
+      "layer": "structure",
+      "x": 12,
+      "y": 6,
+      "properties": {
+        "dialogueId": "terminal_intro"
+      }
+    },
+    {
+      "id": "color_bad",
+      "layer": "structure",
+      "x": 12,
+      "y": 7,
+      "properties": {
+        "dialogueId": "terminal_intro",
+        "color": "q1"
+      }
+    },
+    {
+      "id": "passer",
+      "layer": "structure",
+      "x": 12,
+      "y": 8,
+      "properties": {
+        "dialogueId": "terminal_intro",
+        "solid": false
+      }
+    }
+  ],
   "spawn": {
     "x": 33,
     "y": 21

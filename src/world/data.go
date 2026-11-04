@@ -95,5 +95,7 @@ type MapData struct {
 	Objects     []ObjectData          `json:"objects"`
 	ObjectsByID map[string]ObjectType `json:"-"`
 
+	NPCs []ObjectData `json:"npcs"`
+
 	Spawn Spawn `json:"spawn"`
 }
