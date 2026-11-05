@@ -2,24 +2,16 @@ package objects
 
 import rl "github.com/gen2brain/raylib-go/raylib"
 
-func NewDoor(id string, x, y, size int, color rl.Color, properties map[string]any) *Door {
+func NewDoor(id string, x, y, width, height int, color rl.Color, properties map[string]any) *Door {
 	d := &Door{
 		ID: id,
-		Position: rl.Vector2{
-			X: float32(x),
-			Y: float32(y),
-		},
-		Size: rl.Vector2{
-			X: float32(size),
-			Y: float32(size),
-		},
-		Color: color,
 		Bounds: rl.Rectangle{
 			X:      float32(x),
 			Y:      float32(y),
-			Width:  float32(size),
-			Height: float32(size),
+			Width:  pixelDimension(width),
+			Height: pixelDimension(height),
 		},
+		Color: color,
 	}
 
 	if open, ok := properties["open"].(bool); ok {
@@ -36,10 +28,10 @@ func (d *Door) Update(dt float32) {
 }
 
 func (d *Door) Draw(debug bool) {
-	rl.DrawRectangle(int32(d.Position.X), int32(d.Position.Y), int32(d.Size.X), int32(d.Size.Y), d.Color)
+	rl.DrawRectangleRec(d.Bounds, d.Color)
 
 	if debug {
-		rl.DrawRectangleLines(int32(d.Position.X), int32(d.Position.Y), int32(d.Size.X), int32(d.Size.Y), rl.Black)
+		rl.DrawRectangleLinesEx(d.Bounds, 1, rl.Black)
 	}
 }
 

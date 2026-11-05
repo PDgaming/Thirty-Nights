@@ -2,24 +2,16 @@ package objects
 
 import rl "github.com/gen2brain/raylib-go/raylib"
 
-func NewSeat(id string, x, y, size int, color rl.Color, properties map[string]any) *Seat {
+func NewSeat(id string, x, y, width, height int, color rl.Color, properties map[string]any) *Seat {
 	s := &Seat{
 		ID: id,
-		Position: rl.Vector2{
-			X: float32(x),
-			Y: float32(y),
-		},
-		Size: rl.Vector2{
-			X: float32(size),
-			Y: float32(size),
-		},
-		Color: color,
 		Bounds: rl.Rectangle{
 			X:      float32(x),
 			Y:      float32(y),
-			Width:  float32(size),
-			Height: float32(size),
+			Width:  pixelDimension(width),
+			Height: pixelDimension(height),
 		},
+		Color: color,
 	}
 	if occupied, ok := properties["occupied"].(bool); ok {
 		s.Occupied = occupied
@@ -31,15 +23,14 @@ func NewSeat(id string, x, y, size int, color rl.Color, properties map[string]an
 func (s *Seat) Update(dt float32) {}
 
 func (s *Seat) Draw(debug bool) {
+	color := s.Color
 	if s.Occupied {
-		rl.DrawRectangle(int32(s.Position.X), int32(s.Position.Y), int32(s.Size.X), int32(s.Size.Y), rl.Red)
-	} else {
-
-		rl.DrawRectangle(int32(s.Position.X), int32(s.Position.Y), int32(s.Size.X), int32(s.Size.Y), s.Color)
+		color = rl.Red
 	}
+	rl.DrawRectangleRec(s.Bounds, color)
 
 	if debug {
-		rl.DrawRectangleLines(int32(s.Position.X), int32(s.Position.Y), int32(s.Size.X), int32(s.Size.Y), rl.Black)
+		rl.DrawRectangleLinesEx(s.Bounds, 1, rl.Black)
 	}
 }
 
