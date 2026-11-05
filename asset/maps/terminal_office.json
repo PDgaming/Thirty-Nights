@@ -10,54 +10,44 @@
       "solid": true,
       "visual": {
         "color": "#101820",
-        "texture": "void"
+        "texture": "void.png"
       }
     },
     "floor": {
       "solid": false,
       "visual": {
         "color": "#555B62",
-        "texture": "floor"
+        "texture": "floor.png"
       }
     },
     "wall": {
       "solid": true,
       "visual": {
         "color": "#7a828c",
-        "texture": "wall"
+        "texture": "wall.png"
       }
     },
     "door": {
       "solid": true,
       "visual": {
         "color": "#9A7047",
-        "texture": "door"
+        "texture": "door.png"
       }
     },
     "table": {
       "solid": true,
       "visual": {
         "color": "#b5835a",
-        "texture": "table"
+        "texture": "table.png"
       }
     },
     "seat": {
       "solid": true,
       "visual": {
         "color": "#60a5fa",
-        "texture": "seat"
+        "texture": "seat.png"
       }
     }
-  },
-  "textures": {
-    "void": "void.png",
-    "floor": "floor.png",
-    "wall": "wall.png",
-    "table": "table.png",
-    "door": "door_closed.png",
-    "seat": "seat.png",
-    "door_closed": "door_closed.png",
-    "door_open": "door_closed.png"
   },
   "layers": [
     {
@@ -6496,18 +6486,6 @@
       }
     },
     {
-      "id": "Seat_67",
-      "type": "seat",
-      "layer": "structure",
-      "x": 27,
-      "y": 10,
-      "width": 1,
-      "height": 2,
-      "properties": {
-        "occupied": true
-      }
-    },
-    {
       "id": "Seat_68",
       "type": "seat",
       "layer": "structure",
@@ -6933,20 +6911,15 @@
       }
     },
     {
-      "id": "npc_4",
-      "type": "npc",
+      "id": "seat",
+      "type": "seat",
       "layer": "structure",
       "x": 27,
-      "y": 10,
+      "y": 11,
       "width": 1,
       "height": 1,
       "properties": {
-        "name": "",
-        "dialogueId": "receptionist",
-        "color": "#e8a87c",
-        "facing": "left",
-        "solid": true,
-        "interactionPadding": 1
+        "occupied": false
       }
     }
   ],
