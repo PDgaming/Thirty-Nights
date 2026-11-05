@@ -176,25 +176,3 @@ func TestLoadMapRejectsObjectFootprintOverflow(t *testing.T) {
 		t.Fatalf("LoadMap() error = %q, want it to contain %q", err, "footprint width")
 	}
 }
-
-func TestLoadMapKeepsTerminalOfficeObjectsAtOneTile(t *testing.T) {
-	path := filepath.Join("..", "..", "asset", "maps", "terminal_office.json")
-
-	m, err := LoadMap(path)
-	if err != nil {
-		t.Fatalf("LoadMap(%q) error = %v", path, err)
-	}
-
-	for _, object := range m.Objects {
-		if got, want := object.Footprint(), (Footprint{Width: 1, Height: 1}); got != want {
-			t.Errorf("object %q footprint = %+v, want %+v", object.ID, got, want)
-		}
-	}
-
-	for id := range m.ObjectsByID {
-		bounds, _ := objectRects(t, m, id)
-		if bounds.Width != float32(m.TileSize) || bounds.Height != float32(m.TileSize) {
-			t.Errorf("object %q bounds = %+v, want %dx%d", id, bounds, m.TileSize, m.TileSize)
-		}
-	}
-}

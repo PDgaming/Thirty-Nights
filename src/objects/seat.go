@@ -23,11 +23,15 @@ func NewSeat(id string, x, y, width, height int, color rl.Color, properties map[
 func (s *Seat) Update(dt float32) {}
 
 func (s *Seat) Draw(debug bool) {
-	color := s.Color
 	if s.Occupied {
-		color = rl.Red
+		rl.DrawRectangleRec(s.Bounds, rl.Red)
+	} else if s.Texture.ID != 0 {
+		src := rl.Rectangle{X: 0, Y: 0, Width: float32(s.Texture.Width), Height: float32(s.Texture.Height)}
+		dst := s.Bounds
+		rl.DrawTexturePro(s.Texture, src, dst, rl.Vector2{}, 0, rl.White)
+	} else {
+		rl.DrawRectangleRec(s.Bounds, s.Color)
 	}
-	rl.DrawRectangleRec(s.Bounds, color)
 
 	if debug {
 		rl.DrawRectangleLinesEx(s.Bounds, 1, rl.Black)

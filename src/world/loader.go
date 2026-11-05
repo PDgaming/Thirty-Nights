@@ -117,14 +117,22 @@ func (m *MapData) BuildObjects() error {
 				return fmt.Errorf("failed to find tiledef for door: %s", object.ID)
 			}
 			color := HexToRlColor(tileDef.Visual.Color)
-			m.ObjectsByID[object.ID] = objects.NewDoor(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, color, object.Properties)
+			door := objects.NewDoor(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, color, object.Properties)
+			if tex, ok := m.TileTextures[object.Type]; ok {
+				door.Texture = tex
+			}
+			m.ObjectsByID[object.ID] = door
 		case "seat":
 			tileDef, ok := m.TileDefAt(object.Type)
 			if !ok {
 				return fmt.Errorf("failed to find tiledef for seat: %s", object.ID)
 			}
 			color := HexToRlColor(tileDef.Visual.Color)
-			m.ObjectsByID[object.ID] = objects.NewSeat(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, color, object.Properties)
+			seat := objects.NewSeat(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, color, object.Properties)
+			if tex, ok := m.TileTextures[object.Type]; ok {
+				seat.Texture = tex
+			}
+			m.ObjectsByID[object.ID] = seat
 		case "trigger":
 			trigger, err := objects.NewTrigger(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, object.Properties)
 			if err != nil {
