@@ -41,6 +41,11 @@ import {
 	validateMap,
 	type ValidationIssue
 } from './map-validation';
+import {
+	cellCoveredByObject,
+	objectFitsInMap,
+	objectFootprintsOverlap
+} from './map-model/object-geometry';
 import { mapToJson, normalizeFilename } from './map-serializer';
 import {
 	DEFAULT_MAP_SCHEMA,
@@ -1198,11 +1203,11 @@ export class EditorState {
 		return countObjectsOfType(this.map, id);
 	}
 
-	/** Topmost object sitting on a cell, used for hover editing. */
+	/** Topmost object whose footprint covers a cell, used for hover editing. */
 	objectAtCell(x: number, y: number): ObjectData | undefined {
 		for (let index = this.map.objects.length - 1; index >= 0; index -= 1) {
 			const object = this.map.objects[index];
-			if (object.x === x && object.y === y) return object;
+			if (cellCoveredByObject(object, x, y)) return object;
 		}
 		return undefined;
 	}
@@ -1226,25 +1231,44 @@ export class EditorState {
 		this.editingObjectId = null;
 	}
 
-	/** Move an object and replace the values shown in its settings panel. */
+	/** Move or resize an object and replace the values shown in its settings panel. */
 	updateObject(
 		id: string,
-		patch: { x?: number; y?: number; properties?: Record<string, unknown> }
+		patch: {
+			x?: number;
+			y?: number;
+			width?: number;
+			height?: number;
+			properties?: Record<string, unknown>;
+		}
 	): boolean {
 		const object = this.map.objects.find((item) => item.id === id);
 		if (!object) return false;
 
 		const x = patch.x ?? object.x;
 		const y = patch.y ?? object.y;
+		const width = patch.width ?? object.width;
+		const height = patch.height ?? object.height;
 		if (!Number.isInteger(x) || !Number.isInteger(y) || !inBounds(this.map, x, y)) {
 			this.notify('Object position must be inside the map', 'error');
 			return false;
 		}
+		if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+			this.notify('Object width and height must be positive whole numbers', 'error');
+			return false;
+		}
+
+		const candidate = { x, y, width, height };
+		if (!objectFitsInMap(candidate, this.map.width, this.map.height)) {
+			this.notify('Object footprint must fit inside the map', 'error');
+			return false;
+		}
 		const occupied = this.map.objects.some(
-			(item) => item.id !== id && item.type === object.type && item.x === x && item.y === y
+			(item) =>
+				item.id !== id && item.type === object.type && objectFootprintsOverlap(item, candidate)
 		);
 		if (occupied) {
-			this.notify(`Another "${object.type}" object already occupies (${x}, ${y})`, 'error');
+			this.notify(`Another "${object.type}" object already overlaps this footprint`, 'error');
 			return false;
 		}
 
@@ -1252,8 +1276,15 @@ export class EditorState {
 		const previousY = object.y;
 		object.x = x;
 		object.y = y;
+		object.width = width;
+		object.height = height;
 		if (patch.properties) object.properties = { ...patch.properties };
-		if (this.selectedCell?.x === previousX && this.selectedCell.y === previousY) {
+		if (
+			this.selectedCell &&
+			!cellCoveredByObject(object, this.selectedCell.x, this.selectedCell.y) &&
+			this.selectedCell.x === previousX &&
+			this.selectedCell.y === previousY
+		) {
 			this.selectedCell = { x, y };
 		}
 		this.map = { ...this.map, objects: [...this.map.objects] };

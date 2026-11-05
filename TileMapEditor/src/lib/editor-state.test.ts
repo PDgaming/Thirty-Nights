@@ -420,6 +420,84 @@ describe('object editing', () => {
 		expect(first).toMatchObject({ x: 1, y: 1 });
 		expect(second).toMatchObject({ x: 2, y: 2 });
 	});
+
+	it('finds and selects an object from a covered non-origin cell', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+		expect(editor.updateObject(object.id, { width: 2, height: 2 })).toBe(true);
+
+		expect(editor.objectAtCell(2, 2)?.id).toBe(object.id);
+
+		editor.selectCell(2, 2);
+		expect(editor.selectedCell).toEqual({ x: 2, y: 2 });
+		expect(editor.editingObjectId).toBe(object.id);
+		expect(editor.leftPanelTab).toBe('object');
+	});
+
+	it('resizes an object within the map', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+
+		expect(editor.updateObject(object.id, { width: 3, height: 2 })).toBe(true);
+		expect(object).toMatchObject({ x: 1, y: 1, width: 3, height: 2 });
+
+		expect(editor.updateObject(object.id, { width: 1, height: 1 })).toBe(true);
+		expect(object).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
+	});
+
+	it('rejects resizes that leave the map or use invalid dimensions', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 47, 33);
+		const object = editor.map.objects[0];
+
+		expect(editor.updateObject(object.id, { width: 2, height: 1 })).toBe(false);
+		expect(editor.updateObject(object.id, { width: 1, height: 2 })).toBe(false);
+		expect(editor.updateObject(object.id, { width: 0, height: 1 })).toBe(false);
+		expect(editor.updateObject(object.id, { width: 1, height: 1.5 })).toBe(false);
+		expect(object).toMatchObject({ x: 47, y: 33, width: 1, height: 1 });
+	});
+
+	it('rejects resizes that overlap the same type but allows other types', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		placeDoor(editor, 3, 1);
+		const door = editor.map.objects[0];
+
+		expect(editor.updateObject(door.id, { width: 3 })).toBe(false);
+		expect(door.width).toBe(1);
+
+		editor.selectObjectType('npc');
+		editor.placeObjectLine({ x: 1, y: 2 }, { x: 1, y: 2 });
+		expect(editor.updateObject(door.id, { width: 2 })).toBe(true);
+		expect(door.width).toBe(2);
+	});
+
+	it('keeps the selected cell when a resize still covers it', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+		editor.selectCell(1, 1);
+
+		expect(editor.updateObject(object.id, { width: 3, height: 2 })).toBe(true);
+		expect(editor.selectedCell).toEqual({ x: 1, y: 1 });
+	});
+
+	it('undoes and redoes a move plus resize in one step', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const id = editor.map.objects[0].id;
+
+		expect(editor.updateObject(id, { x: 4, y: 5, width: 2, height: 3 })).toBe(true);
+		expect(editor.map.objects[0]).toMatchObject({ x: 4, y: 5, width: 2, height: 3 });
+
+		expect(editor.undo()).toBe(true);
+		expect(editor.map.objects[0]).toMatchObject({ x: 1, y: 1, width: 1, height: 1 });
+
+		expect(editor.redo()).toBe(true);
+		expect(editor.map.objects[0]).toMatchObject({ x: 4, y: 5, width: 2, height: 3 });
+	});
 });
 
 describe('object attributes', () => {
