@@ -12,13 +12,17 @@ const (
 const interactionFacingThreshold = 0.5
 
 type VisualData struct {
-	Color   string `json:"color"`
-	Texture string `json:"-"`
+	Color   string `json:"color,omitempty"`
+	Texture string `json:"texture,omitempty"`
+	// AssetID references an asset in the map's asset map.
+	// The asset path is resolved relative to asset/tiles/ at load time.
+	AssetID string `json:"asset_id,omitempty"`
 }
 
 type TileDef struct {
-	Solid  bool       `json:"solid"`
-	Visual VisualData `json:"visual"`
+	Solid      bool       `json:"solid"`
+	Visual     VisualData `json:"visual"`
+	DrawOrder  int        `json:"draw_order,omitempty"`
 }
 
 type LayerData struct {
@@ -97,6 +101,12 @@ type MapData struct {
 
 	Layers     []LayerData           `json:"layers"`
 	LayersByID map[string]*LayerData `json:"-"`
+
+	Assets     map[string]string    `json:"assets,omitempty"`
+	AssetsByID map[string]string    `json:"-"`
+
+	assetTextures map[string]rl.Texture2D
+	TileTextures  map[string]rl.Texture2D `json:"-"`
 
 	Objects     []ObjectData          `json:"objects"`
 	ObjectsByID map[string]ObjectType `json:"-"`

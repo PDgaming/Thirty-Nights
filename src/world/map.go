@@ -35,7 +35,13 @@ func DrawMap(m *MapData, debug bool) {
 				pixelY := y * m.TileSize
 				color := HexToRlColor(tileDef.Visual.Color)
 
-				rl.DrawRectangle(int32(pixelX), int32(pixelY), int32(m.TileSize), int32(m.TileSize), color)
+				if texture, ok := m.TileTextures[tileID]; ok && texture.ID != 0 {
+					src := rl.Rectangle{X: 0, Y: 0, Width: float32(texture.Width), Height: float32(texture.Height)}
+					dst := rl.Rectangle{X: float32(pixelX), Y: float32(pixelY), Width: float32(m.TileSize), Height: float32(m.TileSize)}
+					rl.DrawTexturePro(texture, src, dst, rl.Vector2{}, 0, rl.White)
+				} else {
+					rl.DrawRectangle(int32(pixelX), int32(pixelY), int32(m.TileSize), int32(m.TileSize), color)
+				}
 
 				if debug {
 					rl.DrawRectangleLines(int32(pixelX), int32(pixelY), int32(m.TileSize), int32(m.TileSize), rl.Black)

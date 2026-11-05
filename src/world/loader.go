@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	rl "github.com/gen2brain/raylib-go/raylib"
+
 	"thirty.nights/src/npc"
 	"thirty.nights/src/objects"
 )
@@ -61,6 +63,14 @@ func LoadMap(path string) (*MapData, error) {
 		return nil, fmt.Errorf("world: parse %s: %w", path, err)
 	}
 
+	// Build asset map: resolve asset paths relative to asset/tiles/
+	if mapData.Assets != nil {
+		mapData.AssetsByID = make(map[string]string, len(mapData.Assets))
+		for assetID, relPath := range mapData.Assets {
+			mapData.AssetsByID[assetID] = assetPath(relPath)
+		}
+	}
+
 	for i := range mapData.Layers {
 		mode, err := ParseCollisionType(mapData.Layers[i].CollisionName)
 		if err != nil {
@@ -80,6 +90,12 @@ func LoadMap(path string) (*MapData, error) {
 	}
 
 	return &mapData, nil
+}
+
+// assetPath returns the full path to an asset relative to the project root.
+// The map's Assets map stores paths relative to "asset/tiles/".
+func assetPath(relPath string) string {
+	return "asset/tiles/" + relPath
 }
 
 // Helper functions
@@ -129,5 +145,69 @@ func (m *MapData) BuildObjects() error {
 			return fmt.Errorf("unknown object type: %s", object.Type)
 		}
 	}
+	return nil
+}
+
+// LoadTileTextures attempts to load a texture for each tile whose Visual.Texture
+// field names a file. Files are resolved relative to asset/tiles/. Missing or
+// unreadable files are skipped so the tile falls back to its solid colour.
+func (m *MapData) LoadTileTextures() error {
+	m.TileTextures = make(map[string]rl.Texture2D, len(m.Tiles))
+
+	for tileID, tile := range m.Tiles {
+		textureName := tile.Visual.Texture
+		if textureName == "" {
+			continue
+		}
+
+		fullPath := "asset/tiles/" + textureName
+		if _, statErr := os.Stat(fullPath); statErr != nil {
+			fmt.Printf("warning: tile texture not found for %q: %s (skipping)\n", tileID, fullPath)
+			continue
+		}
+
+		texture := rl.LoadTexture(fullPath)
+		if texture.ID == 0 {
+			fmt.Printf("warning: failed to load tile texture for %q from %s\n", tileID, fullPath)
+			continue
+		}
+
+		m.TileTextures[tileID] = texture
+	}
+
+	return nil
+}
+
+// LoadAssets attempts to load all asset textures referenced in the map's
+// asset map. Each entry in MapData.Assets maps an asset ID to a relative
+// path under asset/tiles/. Loaded textures are stored in
+// MapData.assetTextures for later use. Errors for missing files are logged
+// but do not prevent map loading.
+func (m *MapData) LoadAssets() error {
+	if m.AssetsByID == nil || len(m.AssetsByID) == 0 {
+		return nil
+	}
+
+	m.assetTextures = make(map[string]rl.Texture2D, len(m.AssetsByID))
+
+	for assetID, relPath := range m.AssetsByID {
+		fullPath := relPath // already resolved to "asset/tiles/..."
+
+		// Check if file exists before attempting to load
+		if _, statErr := os.Stat(fullPath); statErr != nil {
+			fmt.Printf("warning: asset not found for %q: %s (skipping)\n", assetID, fullPath)
+			continue
+		}
+
+		texture := rl.LoadTexture(fullPath)
+		if texture.ID == 0 {
+			fmt.Printf("warning: failed to load texture for %q from %s\n", assetID, fullPath)
+			continue
+		}
+
+		m.assetTextures[assetID] = texture
+		fmt.Printf("loaded asset %q from %s\n", assetID, fullPath)
+	}
+
 	return nil
 }

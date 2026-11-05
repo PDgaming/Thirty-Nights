@@ -210,6 +210,10 @@ func (g *Game) LoadLevel(id string) (err error) {
 		return fmt.Errorf("invalid dialogue references in level %q: %w", id, err)
 	}
 
+	if err := mapData.LoadTileTextures(); err != nil {
+		return fmt.Errorf("world: failed to load tile textures in %q: %w", id, err)
+	}
+
 	g.currentLevel = id
 	g.Map = mapData
 	g.Player = player.New(float32(g.Map.Spawn.X*g.Map.TileSize), float32(g.Map.Spawn.Y*g.Map.TileSize))
