@@ -212,7 +212,7 @@ func (g *Game) LoadLevel(id string) (err error) {
 
 	g.currentLevel = id
 	g.Map = mapData
-	g.Player = player.New(float32(g.Map.Spawn.X*16), float32(g.Map.Spawn.Y*16))
+	g.Player = player.New(float32(g.Map.Spawn.X*g.Map.TileSize), float32(g.Map.Spawn.Y*g.Map.TileSize))
 	g.ActiveInteractable = nil
 	g.Cam = camera.New()
 	g.Cam.View.Target = rl.Vector2{

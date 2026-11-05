@@ -92,6 +92,8 @@ func (m *MapData) BuildLayerIndex() {
 }
 func (m *MapData) BuildObjects() error {
 	for _, object := range m.Objects {
+		width, height := object.Footprint().Pixels(m.TileSize)
+
 		switch object.Type {
 		case "door":
 			tileDef, ok := m.TileDefAt(object.Type)
@@ -99,16 +101,16 @@ func (m *MapData) BuildObjects() error {
 				return fmt.Errorf("failed to find tiledef for door: %s", object.ID)
 			}
 			color := HexToRlColor(tileDef.Visual.Color)
-			m.ObjectsByID[object.ID] = objects.NewDoor(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, m.TileSize, color, object.Properties)
+			m.ObjectsByID[object.ID] = objects.NewDoor(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, color, object.Properties)
 		case "seat":
 			tileDef, ok := m.TileDefAt(object.Type)
 			if !ok {
 				return fmt.Errorf("failed to find tiledef for seat: %s", object.ID)
 			}
 			color := HexToRlColor(tileDef.Visual.Color)
-			m.ObjectsByID[object.ID] = objects.NewSeat(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, m.TileSize, color, object.Properties)
+			m.ObjectsByID[object.ID] = objects.NewSeat(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, color, object.Properties)
 		case "trigger":
-			trigger, err := objects.NewTrigger(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, m.TileSize, object.Properties)
+			trigger, err := objects.NewTrigger(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, object.Properties)
 			if err != nil {
 				return fmt.Errorf("failed to create trigger %q: %w", object.ID, err)
 			}
@@ -118,7 +120,7 @@ func (m *MapData) BuildObjects() error {
 			if raw, ok := object.Properties["color"].(string); ok && IsValidHexColor(raw) {
 				color = HexToRlColor(raw)
 			}
-			n, err := npc.NewNPC(object.ID, object.X*m.TileSize, object.Y*m.TileSize, m.TileSize, m.TileSize, m.TileSize, color, object.Properties)
+			n, err := npc.NewNPC(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, m.TileSize, color, object.Properties)
 			if err != nil {
 				return fmt.Errorf("failed to create npc %q: %w", object.ID, err)
 			}
