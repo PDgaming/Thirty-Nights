@@ -1,4 +1,4 @@
-import type { GameMap } from './map-model/types';
+import type { GameMap, LayerType } from './map-model/types';
 import { serializeMap } from './map-serializer';
 
 /**
@@ -56,7 +56,10 @@ export const DEFAULT_MAP_SCHEMA: MapSchema = {
 					visual: {
 						type: 'object',
 						required: ['color'],
-						properties: { color: { type: 'string' } }
+						properties: { 
+							color: { type: 'string' },
+							texture: { type: 'string' }
+						}
 					}
 				}
 			}
@@ -69,7 +72,7 @@ export const DEFAULT_MAP_SCHEMA: MapSchema = {
 				required: ['id', 'type', 'z_index', 'collision', 'grid'],
 				properties: {
 					id: { type: 'string' },
-					type: { const: 'tile' },
+					type: { enum: ['tile', 'npc'] },
 					z_index: { type: 'integer' },
 					collision: { enum: ['none', 'tile', 'object'] },
 					grid: {

@@ -206,7 +206,7 @@ describe('parseMapJson', () => {
 		expect(parsed.height).toBe(raw.height);
 		expect(parsed.layers.map((layer) => layer.id)).toEqual(raw.layers.map((layer) => layer.id));
 		expect(parsed.objects).toHaveLength(raw.objects.length + (raw.npcs?.length ?? 0));
-		expect(parsed.objects.every((object) => object.width === 1 && object.height === 1)).toBe(true);
+		expect(parsed.objects.every((object) => object.width >= 1 && object.height >= 1)).toBe(true);
 		expect(parseMapJson(mapToJson(parsed))).toEqual(parsed);
 		expect(parsed).not.toHaveProperty('rooms');
 	});

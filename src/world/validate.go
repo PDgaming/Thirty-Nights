@@ -76,7 +76,7 @@ func ValidateLayerProperties(layers []LayerData, height, width int, tiles map[st
 		}
 		layerIDs[layer.ID] = true
 
-		if layer.Type != "tile" {
+		if layer.Type != "tile" && layer.Type != "npc" {
 			return fmt.Errorf("invalid layer type: %s", layer.Type)
 		}
 		if layer.ZIndex < 0 {

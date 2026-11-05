@@ -14,11 +14,12 @@ export function createLayer(
 	collision: CollisionName,
 	width: number,
 	height: number,
-	zIndex = 0
+	zIndex = 0,
+	type: LayerData['type'] = 'tile'
 ): LayerData {
 	return {
 		id,
-		type: 'tile',
+		type,
 		z_index: zIndex,
 		collision,
 		grid: emptyGrid(width, height)

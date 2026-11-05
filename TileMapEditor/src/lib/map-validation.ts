@@ -108,7 +108,10 @@ function validateTiles(tiles: TileDefs, error: (path: string, message: string) =
 		}
 		if (!isPlainObject(tile.visual)) {
 			error(`tiles.${id}.visual`, 'visual must be an object');
-		} else if (!isValidHexColor(tile.visual.color)) {
+		} else if (
+			!isValidHexColor(tile.visual.color) &&
+			!tile.visual.texture
+		) {
 			error(`tiles.${id}.visual.color`, 'color must be #rgb, #rrggbb, or #rrggbbaa');
 		}
 	}

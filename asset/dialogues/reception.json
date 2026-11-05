@@ -1,0 +1,20 @@
+{
+    "id": "receptionist",
+    "start": "start",
+    "nodes": {
+        "start": {
+            "speaker": "Receptionist",
+            "text": "Welcome aboard, Mr. ?",
+            "next": "name"
+        },
+        "name": {
+            "speaker": "Robert",
+            "text": "Robert.",
+            "next": "boarding"
+        },
+        "boarding": {
+            "speaker": "Receptionist",
+            "text": "Your cabin is on the fourth deck. Enjoy the trip."
+        }
+    }
+}

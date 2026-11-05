@@ -4,6 +4,7 @@ import type {
 	CollisionName,
 	GameMap,
 	LayerData,
+	LayerType,
 	ObjectData,
 	TileDef
 } from './map-model/types';
@@ -96,12 +97,12 @@ export function uniqueTileId(map: GameMap, base = 'tile'): string {
 	return `${base}_${suffix}`;
 }
 
-export function addLayer(map: GameMap, id: string, collision: CollisionName): LayerData | null {
+export function addLayer(map: GameMap, id: string, collision: CollisionName, type: LayerType = 'tile'): LayerData | null {
 	if (map.layers.some((layer) => layer.id === id)) return null;
 	const maxZ = map.layers.reduce((max, layer) => Math.max(max, layer.z_index), -1);
 	const layer: LayerData = {
 		id,
-		type: 'tile',
+		type,
 		z_index: maxZ + 1,
 		collision,
 		grid: Array.from({ length: map.height }, () => Array.from({ length: map.width }, () => ''))
@@ -211,7 +212,10 @@ export function updateTile(map: GameMap, id: string, patch: Partial<TileDef>): b
 		...map.tiles,
 		[id]: {
 			solid: patch.solid ?? tile.solid,
-			visual: { color: patch.visual?.color ?? tile.visual.color }
+			visual: {
+				color: patch.visual?.color ?? tile.visual.color,
+				texture: patch.visual?.texture ?? tile.visual.texture
+			}
 		}
 	};
 	return true;

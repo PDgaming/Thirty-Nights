@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { EditorState } from '#lib/editor-state.svelte';
-	import { COLLISION_TYPES, type CollisionName, type LayerData } from '#lib/map-model/types';
+	import { LAYER_TYPES, type LayerData, type LayerType } from '#lib/map-model/types';
+	import { COLLISION_TYPES, type CollisionName } from '#lib/map-model/types';
 	import Icon from '@iconify/svelte';
 	import { tick } from 'svelte';
 	import { icons } from './icons';
@@ -287,6 +288,9 @@
 						}}
 					/>
 					<select class="field-sm" bind:value={newCollision}>
+						{#each LAYER_TYPES as type (type)}
+							<option value={type}>{type}</option>
+						{/each}
 						{#each COLLISION_TYPES as collision (collision)}
 							<option value={collision}>{collision}</option>
 						{/each}
