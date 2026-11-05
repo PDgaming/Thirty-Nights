@@ -118,9 +118,6 @@ func (m *MapData) BuildObjects() error {
 			}
 			color := HexToRlColor(tileDef.Visual.Color)
 			door := objects.NewDoor(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, color, object.Properties)
-			if tex, ok := m.TileTextures[object.Type]; ok {
-				door.Texture = tex
-			}
 			m.ObjectsByID[object.ID] = door
 		case "seat":
 			tileDef, ok := m.TileDefAt(object.Type)
@@ -129,9 +126,6 @@ func (m *MapData) BuildObjects() error {
 			}
 			color := HexToRlColor(tileDef.Visual.Color)
 			seat := objects.NewSeat(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, color, object.Properties)
-			if tex, ok := m.TileTextures[object.Type]; ok {
-				seat.Texture = tex
-			}
 			m.ObjectsByID[object.ID] = seat
 		case "trigger":
 			trigger, err := objects.NewTrigger(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, object.Properties)

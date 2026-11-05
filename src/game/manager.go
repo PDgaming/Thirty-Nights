@@ -214,6 +214,20 @@ func (g *Game) LoadLevel(id string) (err error) {
 		return fmt.Errorf("world: failed to load tile textures in %q: %w", id, err)
 	}
 
+	// Assign loaded textures to objects that use tile textures.
+	for _, obj := range mapData.ObjectsByID {
+		if door, ok := obj.(*objects.Door); ok {
+			if tex, ok := mapData.TileTextures["door"]; ok {
+				door.Texture = tex
+			}
+		}
+		if seat, ok := obj.(*objects.Seat); ok {
+			if tex, ok := mapData.TileTextures["seat"]; ok {
+				seat.Texture = tex
+			}
+		}
+	}
+
 	g.currentLevel = id
 	g.Map = mapData
 	g.Player = player.New(float32(g.Map.Spawn.X*g.Map.TileSize), float32(g.Map.Spawn.Y*g.Map.TileSize))
