@@ -7,6 +7,7 @@ import {
 } from './editor-state.svelte';
 import { DEFAULT_MAP_SCHEMA } from './map-schema';
 import { mapToJson } from './map-serializer';
+import { createEmptyMap } from './map-model/factory';
 
 function memoryStorage(): Storage {
 	const data = new Map<string, string>();
@@ -419,6 +420,141 @@ describe('object editing', () => {
 		expect(editor.endObjectDrag()).toBe(false);
 		expect(first).toMatchObject({ x: 1, y: 1 });
 		expect(second).toMatchObject({ x: 2, y: 2 });
+	});
+
+	it('drags a multi-tile object only to targets where its footprint fits', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+		expect(editor.updateObject(object.id, { width: 2, height: 1 })).toBe(true);
+
+		editor.beginObjectDrag(object.id);
+		editor.dragObjectTo(46, 5);
+		expect(editor.dragTarget).toEqual({ x: 46, y: 5 });
+		expect(editor.endObjectDrag()).toBe(true);
+		expect(object).toMatchObject({ x: 46, y: 5, width: 2, height: 1 });
+
+		// The origin is still in the map, but the second column is not.
+		editor.beginObjectDrag(object.id);
+		editor.dragObjectTo(47, 5);
+		expect(editor.dragTarget).toBeNull();
+		expect(editor.endObjectDrag()).toBe(false);
+		expect(object).toMatchObject({ x: 46, y: 5, width: 2, height: 1 });
+	});
+
+	it('cancels a multi-tile drag without moving the object', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+		expect(editor.updateObject(object.id, { width: 2, height: 2 })).toBe(true);
+
+		editor.beginObjectDrag(object.id);
+		editor.dragObjectTo(10, 10);
+		expect(editor.endObjectDrag(false)).toBe(false);
+		expect(object).toMatchObject({ x: 1, y: 1, width: 2, height: 2 });
+	});
+
+	it('rejects a multi-tile drop onto an overlapping same-type footprint', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		placeDoor(editor, 4, 1);
+		const [first, second] = editor.map.objects;
+		expect(editor.updateObject(first.id, { width: 2, height: 1 })).toBe(true);
+		expect(editor.updateObject(second.id, { width: 2, height: 1 })).toBe(true);
+
+		editor.beginObjectDrag(first.id);
+		editor.dragObjectTo(4, 1);
+		expect(editor.endObjectDrag()).toBe(false);
+		expect(first).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(second).toMatchObject({ x: 4, y: 1, width: 2, height: 1 });
+	});
+
+	it('defaults the placement brush to 1x1 and validates new sizes', () => {
+		const editor = new EditorState();
+
+		expect(editor.placementBrushWidth).toBe(1);
+		expect(editor.placementBrushHeight).toBe(1);
+
+		expect(editor.setPlacementBrush(2, 3)).toBe(true);
+		expect(editor.placementBrushWidth).toBe(2);
+		expect(editor.placementBrushHeight).toBe(3);
+
+		expect(editor.setPlacementBrush(0, 1)).toBe(false);
+		expect(editor.setPlacementBrush(1, -1)).toBe(false);
+		expect(editor.setPlacementBrush(1.5, 1)).toBe(false);
+		expect(editor.setPlacementBrush(editor.map.width + 1, 1)).toBe(false);
+		expect(editor.placementBrushWidth).toBe(2);
+		expect(editor.placementBrushHeight).toBe(3);
+	});
+
+	it('places one object per stroke with a larger brush', () => {
+		const editor = new EditorState();
+		editor.selectObjectType('door');
+		expect(editor.setPlacementBrush(2, 2)).toBe(true);
+
+		editor.placeObjectLine({ x: 1, y: 1 }, { x: 1, y: 1 });
+		expect(editor.map.objects).toHaveLength(1);
+		expect(editor.map.objects[0]).toMatchObject({ x: 1, y: 1, width: 2, height: 2 });
+
+		// The rest of the stroke drags across other cells and must not place more.
+		editor.placeObjectLine({ x: 1, y: 1 }, { x: 4, y: 1 });
+		editor.placeObjectLine({ x: 4, y: 1 }, { x: 6, y: 1 });
+		expect(editor.map.objects).toHaveLength(1);
+	});
+
+	it('keeps line painting for a 1x1 brush', () => {
+		const editor = new EditorState();
+		editor.selectObjectType('door');
+		expect(editor.setPlacementBrush(1, 1)).toBe(true);
+
+		editor.placeObjectLine({ x: 1, y: 1 }, { x: 3, y: 1 });
+
+		expect(editor.map.objects.map((object) => object.x)).toEqual([1, 2, 3]);
+		expect(editor.map.objects.every((object) => object.width === 1 && object.height === 1)).toBe(
+			true
+		);
+	});
+
+	it('resets the placement brush when the map is replaced or loaded', () => {
+		const editor = new EditorState();
+		expect(editor.setPlacementBrush(2, 2)).toBe(true);
+
+		editor.newMap();
+		expect(editor.placementBrushWidth).toBe(1);
+		expect(editor.placementBrushHeight).toBe(1);
+
+		expect(editor.setPlacementBrush(3, 2)).toBe(true);
+		editor.loadMap(createEmptyMap({ width: 8, height: 8 }));
+		expect(editor.placementBrushWidth).toBe(1);
+		expect(editor.placementBrushHeight).toBe(1);
+	});
+
+	it('commits a multi-tile drag and a brush placement as single undo steps', () => {
+		const editor = new EditorState();
+		placeDoor(editor, 1, 1);
+		const object = editor.map.objects[0];
+		expect(editor.updateObject(object.id, { width: 2, height: 1 })).toBe(true);
+
+		editor.beginObjectDrag(object.id);
+		editor.dragObjectTo(10, 5);
+		expect(editor.endObjectDrag()).toBe(true);
+		expect(object).toMatchObject({ x: 10, y: 5 });
+
+		expect(editor.undo()).toBe(true);
+		expect(editor.map.objects[0]).toMatchObject({ x: 1, y: 1, width: 2, height: 1 });
+		expect(editor.redo()).toBe(true);
+		expect(editor.map.objects[0]).toMatchObject({ x: 10, y: 5, width: 2, height: 1 });
+
+		editor.selectObjectType('npc');
+		expect(editor.setPlacementBrush(2, 1)).toBe(true);
+		editor.placeObjectLine({ x: 2, y: 2 }, { x: 2, y: 2 });
+		expect(editor.map.objects).toHaveLength(2);
+
+		expect(editor.undo()).toBe(true);
+		expect(editor.map.objects).toHaveLength(1);
+		expect(editor.redo()).toBe(true);
+		expect(editor.map.objects).toHaveLength(2);
+		expect(editor.map.objects[1]).toMatchObject({ x: 2, y: 2, width: 2, height: 1 });
 	});
 
 	it('finds and selects an object from a covered non-origin cell', () => {

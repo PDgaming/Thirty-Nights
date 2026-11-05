@@ -257,6 +257,9 @@ export class EditorState {
 	/** Object being dragged, plus the snapped cell it would land on. */
 	draggingObjectId = $state<string | null>(null);
 	dragTarget = $state<CellPosition | null>(null);
+	/** Footprint size used when placing objects. A brush larger than 1x1 places one object per stroke. */
+	placementBrushWidth = $state(1);
+	placementBrushHeight = $state(1);
 	hiddenLayers = $state<string[]>([]);
 
 	/** Assigning a tile clears any object selection, and vice versa. */
@@ -884,6 +887,8 @@ export class EditorState {
 		this.selectedCell = null;
 		this.draggingObjectId = null;
 		this.dragTarget = null;
+		this.placementBrushWidth = 1;
+		this.placementBrushHeight = 1;
 		this.objectTypes = cloneObjectTypes(DEFAULT_OBJECT_TYPES);
 		this.autoTileColors = {};
 		this.hiddenLayers = [];
@@ -910,6 +915,8 @@ export class EditorState {
 		this.selectedCell = null;
 		this.draggingObjectId = null;
 		this.dragTarget = null;
+		this.placementBrushWidth = 1;
+		this.placementBrushHeight = 1;
 		this.objectTypes = objectTypesForMap(map);
 		this.autoTileColors = {};
 		this.tileBindings = {};
@@ -1199,6 +1206,24 @@ export class EditorState {
 		this.tool = 'object';
 	}
 
+	/**
+	 * Set the object placement brush size. Dimensions are in tiles and must be
+	 * positive whole numbers that could fit somewhere inside the map.
+	 */
+	setPlacementBrush(width: number, height: number): boolean {
+		if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+			this.notify('Brush size must be positive whole numbers', 'error');
+			return false;
+		}
+		if (width > this.map.width || height > this.map.height) {
+			this.notify('Brush size must fit inside the map', 'error');
+			return false;
+		}
+		this.placementBrushWidth = width;
+		this.placementBrushHeight = height;
+		return true;
+	}
+
 	objectCountForType(id: string): number {
 		return countObjectsOfType(this.map, id);
 	}
@@ -1304,10 +1329,25 @@ export class EditorState {
 		return true;
 	}
 
-	/** Snap the drag preview to a cell; targets outside the map are ignored. */
+	/**
+	 * Snap the drag preview to a cell. The target is only valid when the dragged
+	 * object's full footprint fits inside the map, so a move cannot push part of
+	 * the object off the edge.
+	 */
 	dragObjectTo(x: number, y: number): void {
 		if (this.draggingObjectId === null) return;
-		this.dragTarget = inBounds(this.map, x, y) ? { x, y } : null;
+		const object = this.map.objects.find((item) => item.id === this.draggingObjectId);
+		if (!object) {
+			this.dragTarget = null;
+			return;
+		}
+		const target = { x, y, width: object.width, height: object.height };
+		this.dragTarget =
+			Number.isInteger(x) &&
+			Number.isInteger(y) &&
+			objectFitsInMap(target, this.map.width, this.map.height)
+				? { x, y }
+				: null;
 	}
 
 	/**
@@ -1669,13 +1709,25 @@ export class EditorState {
 		const layer = this.activeLayer;
 		if (!type || !layer) return;
 
+		const width = this.placementBrushWidth;
+		const height = this.placementBrushHeight;
+		const properties = this.defaultPropertiesForType(type);
+
+		// A larger brush places one object per stroke. Only the pointer-down call
+		// has identical endpoints; later drag cells are ignored so a stroke cannot
+		// leave a run of overlapping same-type footprints.
+		if (width > 1 || height > 1) {
+			if (from.x !== to.x || from.y !== to.y) return;
+			if (addObject(this.map, type.id, layer.id, from.x, from.y, properties, width, height)) {
+				this.commit();
+			}
+			return;
+		}
+
 		let changed = false;
 		for (const cell of lineBetween(from, to)) {
 			if (!inBounds(this.map, cell.x, cell.y)) continue;
-			if (
-				addObject(this.map, type.id, layer.id, cell.x, cell.y, this.defaultPropertiesForType(type))
-			)
-				changed = true;
+			if (addObject(this.map, type.id, layer.id, cell.x, cell.y, properties, 1, 1)) changed = true;
 		}
 		if (changed) this.commit();
 	}
