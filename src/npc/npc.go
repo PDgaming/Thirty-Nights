@@ -10,19 +10,29 @@ var DefaultColor = rl.NewColor(232, 168, 124, 255)
 
 const defaultPrompt = "E - Talk"
 
-func NewNPC(id string, x, y, tileSize int, color rl.Color, properties map[string]any) (*NPC, error) {
-	fx, fy := float32(x), float32(y)
-	fsize := float32(tileSize)
+// pixelDimension guards the constructor against empty or inverted rectangles.
+// The loader and map validation are the real guards; this keeps direct callers
+// from producing degenerate geometry.
+func pixelDimension(value int) float32 {
+	if value <= 0 {
+		return 1
+	}
+	return float32(value)
+}
 
+func NewNPC(id string, x, y, width, height, tileSize int, color rl.Color, properties map[string]any) (*NPC, error) {
 	n := &NPC{
-		ID:       id,
-		Position: rl.Vector2{X: fx, Y: fy},
-		Size:     rl.Vector2{X: fsize, Y: fsize},
-		Bounds:   rl.Rectangle{X: fx, Y: fy, Width: fsize, Height: fsize},
-		Color:    color,
-		Facing:   rl.Vector2{X: 0, Y: 1}, // down
-		Name:     id,
-		solid:    true,
+		ID: id,
+		Bounds: rl.Rectangle{
+			X:      float32(x),
+			Y:      float32(y),
+			Width:  pixelDimension(width),
+			Height: pixelDimension(height),
+		},
+		Color:  color,
+		Facing: rl.Vector2{X: 0, Y: 1}, // down
+		Name:   id,
+		solid:  true,
 	}
 
 	raw, ok := properties["dialogueId"]

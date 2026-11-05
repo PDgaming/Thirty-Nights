@@ -1,6 +1,7 @@
 package objects
 
 import (
+	"strings"
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -177,6 +178,96 @@ func TestSeatGeometryClampsNonPositiveDimensions(t *testing.T) {
 	s := NewSeat("seat", 0, 0, 0, -4, rl.White, nil)
 
 	assertRectangle(t, "Bounds", s.Bounds, rl.Rectangle{X: 0, Y: 0, Width: 1, Height: 1})
+}
+
+func TestTriggerGeometry(t *testing.T) {
+	tests := []struct {
+		name          string
+		width, height int
+	}{
+		{name: "square", width: 16, height: 16},
+		{name: "wide", width: 48, height: 16},
+		{name: "tall", width: 16, height: 32},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			trigger, err := NewTrigger("trigger", 10, 20, tt.width, tt.height, map[string]any{"dialogueId": "intro"})
+			if err != nil {
+				t.Fatalf("NewTrigger() error = %v", err)
+			}
+
+			wantBounds := rl.Rectangle{
+				X:      10,
+				Y:      20,
+				Width:  float32(tt.width),
+				Height: float32(tt.height),
+			}
+			assertRectangle(t, "Bounds", trigger.Bounds, wantBounds)
+			assertRectangle(t, "CollisionRect()", trigger.CollisionRect(), wantBounds)
+
+			wantInteraction := rl.Rectangle{
+				X:      10 - interactionPadding,
+				Y:      20 - interactionPadding,
+				Width:  float32(tt.width) + interactionPadding*2,
+				Height: float32(tt.height) + interactionPadding*2,
+			}
+			assertRectangle(t, "InteractionRect()", trigger.InteractionRect(), wantInteraction)
+		})
+	}
+}
+
+func TestTriggerGeometryClampsNonPositiveDimensions(t *testing.T) {
+	trigger, err := NewTrigger("trigger", 0, 0, 0, -2, map[string]any{"dialogueId": "intro"})
+	if err != nil {
+		t.Fatalf("NewTrigger() error = %v", err)
+	}
+
+	assertRectangle(t, "Bounds", trigger.Bounds, rl.Rectangle{X: 0, Y: 0, Width: 1, Height: 1})
+}
+
+func TestTriggerRequiresDialogueID(t *testing.T) {
+	tests := []struct {
+		name       string
+		properties map[string]any
+		contains   string
+	}{
+		{name: "missing", properties: map[string]any{}, contains: "no \"dialogueId\""},
+		{name: "nil value", properties: map[string]any{"dialogueId": nil}, contains: "no \"dialogueId\""},
+		{name: "empty", properties: map[string]any{"dialogueId": ""}, contains: "must not be empty"},
+		{name: "wrong type", properties: map[string]any{"dialogueId": 42}, contains: "must be a string"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewTrigger("trigger", 0, 0, 16, 16, tt.properties)
+			if err == nil {
+				t.Fatal("NewTrigger() error = nil, want an error")
+			}
+			if !strings.Contains(err.Error(), tt.contains) {
+				t.Fatalf("NewTrigger() error = %q, want it to contain %q", err, tt.contains)
+			}
+		})
+	}
+}
+
+func TestTriggerPromptCoversFootprint(t *testing.T) {
+	trigger, err := NewTrigger("trigger", 10, 20, 48, 16, map[string]any{"dialogueId": "intro"})
+	if err != nil {
+		t.Fatalf("NewTrigger() error = %v", err)
+	}
+
+	if got := trigger.Prompt(); got != DefaultTriggerPrompt {
+		t.Fatalf("Prompt() = %q, want %q", got, DefaultTriggerPrompt)
+	}
+	if got := trigger.PromptFor(rl.Rectangle{X: 55, Y: 30, Width: 16, Height: 16}); got != DefaultTriggerPrompt {
+		t.Fatalf("PromptFor(right edge) = %q, want %q", got, DefaultTriggerPrompt)
+	}
+
+	trigger.PromptText = "E - Inspect"
+	if got := trigger.PromptFor(rl.Rectangle{X: 2, Y: 20, Width: 16, Height: 16}); got != "E - Inspect" {
+		t.Fatalf("PromptFor(left edge) = %q, want %q", got, "E - Inspect")
+	}
 }
 
 func TestSeatPrompts(t *testing.T) {

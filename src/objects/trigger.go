@@ -8,22 +8,14 @@ import (
 
 const DefaultTriggerPrompt = "E - Look"
 
-func NewTrigger(id string, x, y, size int, properties map[string]any) (*Trigger, error) {
+func NewTrigger(id string, x, y, width, height int, properties map[string]any) (*Trigger, error) {
 	t := &Trigger{
 		ID: id,
-		Position: rl.Vector2{
-			X: float32(x),
-			Y: float32(y),
-		},
-		Size: rl.Vector2{
-			X: float32(size),
-			Y: float32(size),
-		},
 		Bounds: rl.Rectangle{
 			X:      float32(x),
 			Y:      float32(y),
-			Width:  float32(size),
-			Height: float32(size),
+			Width:  pixelDimension(width),
+			Height: pixelDimension(height),
 		},
 		PromptText: DefaultTriggerPrompt,
 	}

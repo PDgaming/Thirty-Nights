@@ -31,8 +31,6 @@ type Seat struct {
 
 type Trigger struct {
 	ID         string
-	Position   rl.Vector2
-	Size       rl.Vector2
 	Bounds     rl.Rectangle
 	PromptText string
 
