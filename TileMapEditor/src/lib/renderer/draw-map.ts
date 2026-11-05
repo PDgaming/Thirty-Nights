@@ -1,4 +1,5 @@
-import type { CellPosition, GameMap } from '../map-model/types';
+import type { CellPosition, GameMap, ObjectData } from '../map-model/types';
+import { cellCoveredByObject, objectFitsInMap } from '../map-model/object-geometry';
 import type { TilesetSlice } from '../tileset/slicing';
 import type { Viewport } from './viewport';
 
@@ -28,6 +29,8 @@ export interface MapRenderOptions {
 	selectedCell: CellPosition | null;
 	draggingObjectId: string | null;
 	dragTarget: CellPosition | null;
+	placementBrushWidth: number;
+	placementBrushHeight: number;
 	tool: EditorTool;
 }
 
@@ -202,7 +205,7 @@ function drawObjects(options: MapRenderOptions, tilePx: number): void {
 	if (hover) {
 		for (let index = map.objects.length - 1; index >= 0; index -= 1) {
 			const object = map.objects[index];
-			if (object.x === hover.x && object.y === hover.y) {
+			if (cellCoveredByObject(object, hover.x, hover.y)) {
 				hoveredId = object.id;
 				break;
 			}
@@ -210,55 +213,90 @@ function drawObjects(options: MapRenderOptions, tilePx: number): void {
 	}
 
 	for (const object of map.objects) {
-		const px = view.offsetX + object.x * tilePx;
-		const py = view.offsetY + object.y * tilePx;
-		const size = Math.ceil(tilePx);
+		const { px, py, width, height } = footprintPx(view, object, tilePx);
+		const color = objectColors[object.type] ?? OBJECT;
 		const isDragging = object.id === draggingObjectId;
-		drawObjectMarker(
-			ctx,
-			px,
-			py,
-			size,
-			objectColors[object.type] ?? OBJECT,
-			isDragging ? 0.25 : 0.92
-		);
+		const multiTile = object.width > 1 || object.height > 1;
+		drawObjectFootprint(ctx, px, py, width, height, color, multiTile, isDragging ? 0.08 : 0.16);
+		drawObjectMarker(ctx, px, py, width, height, color, isDragging ? 0.25 : 0.92);
 		if (!isDragging && tool === 'select' && object.id === hoveredId) {
-			drawObjectFocus(ctx, px, py, size);
+			drawObjectFocus(ctx, px, py, width, height);
 		}
 	}
 }
 
-/** Dashed snapped-cell preview and ghost marker while an object is dragged. */
+interface FootprintPx {
+	px: number;
+	py: number;
+	width: number;
+	height: number;
+}
+
+/** Pixel rectangle for an object's footprint at the current zoom. */
+function footprintPx(
+	view: Viewport,
+	object: Pick<ObjectData, 'x' | 'y' | 'width' | 'height'>,
+	tilePx: number
+): FootprintPx {
+	return {
+		px: view.offsetX + object.x * tilePx,
+		py: view.offsetY + object.y * tilePx,
+		width: Math.ceil(object.width * tilePx),
+		height: Math.ceil(object.height * tilePx)
+	};
+}
+
+/** Tinted rectangle behind a multi-tile object, so its full footprint reads at a glance. */
+function drawObjectFootprint(
+	ctx: CanvasRenderingContext2D,
+	px: number,
+	py: number,
+	width: number,
+	height: number,
+	color: string,
+	visible: boolean,
+	alpha: number
+): void {
+	if (!visible) return;
+	ctx.save();
+	ctx.globalAlpha = alpha;
+	ctx.fillStyle = color;
+	ctx.fillRect(px, py, width, height);
+	ctx.globalAlpha = Math.min(1, alpha + 0.35);
+	ctx.strokeStyle = color;
+	ctx.lineWidth = 1;
+	ctx.strokeRect(px + 0.5, py + 0.5, width - 1, height - 1);
+	ctx.restore();
+}
+
+/** Dashed snapped-footprint preview and ghost marker while an object is dragged. */
 function drawObjectDrag(options: MapRenderOptions, tilePx: number): void {
 	const { ctx, map, view, objectColors, draggingObjectId, dragTarget } = options;
 	if (draggingObjectId === null || dragTarget === null) return;
-	if (
-		dragTarget.x < 0 ||
-		dragTarget.y < 0 ||
-		dragTarget.x >= map.width ||
-		dragTarget.y >= map.height
-	) {
-		return;
-	}
 
 	const object = map.objects.find((item) => item.id === draggingObjectId);
 	if (!object) return;
+	const target = {
+		x: dragTarget.x,
+		y: dragTarget.y,
+		width: object.width,
+		height: object.height
+	};
+	if (!objectFitsInMap(target, map.width, map.height)) return;
 
-	const px = view.offsetX + dragTarget.x * tilePx;
-	const py = view.offsetY + dragTarget.y * tilePx;
-	const size = Math.ceil(tilePx);
+	const { px, py, width, height } = footprintPx(view, target, tilePx);
 
 	ctx.save();
 	ctx.fillStyle = 'rgba(111, 159, 216, 0.16)';
-	ctx.fillRect(px, py, size, size);
+	ctx.fillRect(px, py, width, height);
 	ctx.strokeStyle = ACCENT;
 	ctx.lineWidth = 2;
 	ctx.setLineDash([4, 3]);
-	ctx.strokeRect(px + 1, py + 1, size - 2, size - 2);
+	ctx.strokeRect(px + 1, py + 1, width - 2, height - 2);
 	ctx.restore();
 
-	drawObjectMarker(ctx, px, py, size, objectColors[object.type] ?? OBJECT, 0.92);
-	drawObjectFocus(ctx, px, py, size);
+	drawObjectMarker(ctx, px, py, width, height, objectColors[object.type] ?? OBJECT, 0.92);
+	drawObjectFocus(ctx, px, py, width, height);
 }
 
 function drawSelection(options: MapRenderOptions, tilePx: number): void {
@@ -273,16 +311,30 @@ function drawSelection(options: MapRenderOptions, tilePx: number): void {
 		return;
 	}
 
-	const px = view.offsetX + selectedCell.x * tilePx;
-	const py = view.offsetY + selectedCell.y * tilePx;
-	const size = Math.ceil(tilePx);
+	let selectedObject: ObjectData | undefined;
+	for (let index = map.objects.length - 1; index >= 0; index -= 1) {
+		const object = map.objects[index];
+		if (cellCoveredByObject(object, selectedCell.x, selectedCell.y)) {
+			selectedObject = object;
+			break;
+		}
+	}
+
+	const { px, py, width, height } = selectedObject
+		? footprintPx(view, selectedObject, tilePx)
+		: {
+				px: view.offsetX + selectedCell.x * tilePx,
+				py: view.offsetY + selectedCell.y * tilePx,
+				width: Math.ceil(tilePx),
+				height: Math.ceil(tilePx)
+			};
 
 	ctx.save();
 	ctx.fillStyle = 'rgba(111, 159, 216, 0.16)';
-	ctx.fillRect(px, py, size, size);
+	ctx.fillRect(px, py, width, height);
 	ctx.strokeStyle = ACCENT;
 	ctx.lineWidth = 2;
-	ctx.strokeRect(px + 1, py + 1, size - 2, size - 2);
+	ctx.strokeRect(px + 1, py + 1, width - 2, height - 2);
 	ctx.restore();
 }
 
@@ -290,11 +342,12 @@ function drawObjectFocus(
 	ctx: CanvasRenderingContext2D,
 	px: number,
 	py: number,
-	size: number
+	width: number,
+	height: number
 ): void {
-	const cx = px + size / 2;
-	const cy = py + size / 2;
-	const radius = Math.max(3, Math.min(size * 0.3, 11));
+	const cx = px + width / 2;
+	const cy = py + height / 2;
+	const radius = Math.max(3, Math.min(Math.min(width, height) * 0.3, 11));
 
 	ctx.save();
 	ctx.strokeStyle = ACCENT;
@@ -309,13 +362,14 @@ function drawObjectMarker(
 	ctx: CanvasRenderingContext2D,
 	px: number,
 	py: number,
-	size: number,
+	width: number,
+	height: number,
 	color: string,
 	alpha: number
 ): void {
-	const cx = px + size / 2;
-	const cy = py + size / 2;
-	const radius = Math.max(3, Math.min(size * 0.3, 11));
+	const cx = px + width / 2;
+	const cy = py + height / 2;
+	const radius = Math.max(3, Math.min(Math.min(width, height) * 0.3, 11));
 
 	ctx.save();
 	ctx.globalAlpha = alpha;
@@ -370,7 +424,9 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 		hiddenLayers,
 		showTilesetArt,
 		tileset,
-		draggingObjectId
+		draggingObjectId,
+		placementBrushWidth,
+		placementBrushHeight
 	} = options;
 	if (!hover) return;
 	if (draggingObjectId !== null) return;
@@ -400,11 +456,13 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 		ctx.strokeRect(px + 0.5, py + 0.5, drawWidth - 1, drawHeight - 1);
 	} else if (tool === 'object') {
 		const color = activeObjectTypeId ? objectColors[activeObjectTypeId] : undefined;
+		const previewWidth = Math.ceil(placementBrushWidth * tilePx);
+		const previewHeight = Math.ceil(placementBrushHeight * tilePx);
 		ctx.strokeStyle = ACCENT;
 		ctx.lineWidth = 1.5;
-		ctx.strokeRect(px + 0.5, py + 0.5, drawWidth - 1, drawHeight - 1);
+		ctx.strokeRect(px + 0.5, py + 0.5, previewWidth - 1, previewHeight - 1);
 		if (color) {
-			drawObjectMarker(ctx, px, py, drawWidth, color, 0.55);
+			drawObjectMarker(ctx, px, py, previewWidth, previewHeight, color, 0.55);
 		}
 	} else if (activeTileId) {
 		const activeTile = map.tiles[activeTileId];

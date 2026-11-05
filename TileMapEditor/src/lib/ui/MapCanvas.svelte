@@ -61,6 +61,8 @@
 			selectedCell: editor.selectedCell,
 			draggingObjectId: editor.draggingObjectId,
 			dragTarget: editor.dragTarget,
+			placementBrushWidth: editor.placementBrushWidth,
+			placementBrushHeight: editor.placementBrushHeight,
 			tool: editor.tool
 		});
 	}
@@ -206,6 +208,8 @@
 			editor.selectedCell,
 			editor.draggingObjectId,
 			editor.dragTarget,
+			editor.placementBrushWidth,
+			editor.placementBrushHeight,
 			editor.tool,
 			width,
 			height
