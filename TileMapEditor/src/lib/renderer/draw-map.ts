@@ -47,11 +47,20 @@ const OBJECT = '#c98bb9';
 const OBJECT_INK = '#141414';
 
 const textureCache = new Map<string, HTMLImageElement>();
+const textureFailed = new Set<string>();
 
-function textureImage(name: string): HTMLImageElement {
+function textureImage(name: string, onLoad?: () => void): HTMLImageElement {
 	let img = textureCache.get(name);
 	if (!img) {
 		img = new Image();
+		img.onload = () => {
+			textureFailed.delete(name);
+			onLoad?.();
+		};
+		img.onerror = () => {
+			textureFailed.add(name);
+			onLoad?.();
+		};
 		img.src = `/asset/tiles/${name}`;
 		textureCache.set(name, img);
 	}
@@ -144,15 +153,13 @@ function drawLayers(
 
 				// If the tile has a texture image, draw it
 				if (tile.visual.texture) {
-					const img = textureImage(tile.visual.texture);
-					if (img.complete) {
+					const img = textureImage(tile.visual.texture, options.onTextureLoad);
+					if (!textureFailed.has(tile.visual.texture) && img.complete && img.naturalWidth > 0) {
 						ctx.imageSmoothingEnabled = false;
 						ctx.drawImage(img, px, py, drawWidth, drawHeight);
-					} else if (options.onTextureLoad) {
-						if (!img.dataset.ready) {
-							img.dataset.ready = '1';
-							img.onload = () => options.onTextureLoad?.();
-						}
+					} else {
+						ctx.fillStyle = tile.visual.color;
+						ctx.fillRect(px, py, drawWidth, drawHeight);
 					}
 				} else {
 					ctx.fillStyle = tile.visual.color;
@@ -500,17 +507,16 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 			ctx.globalAlpha = 0.55;
 			// If the tile has a texture image, draw it; otherwise use solid color
 			if (activeTile.visual.texture) {
-				const img = textureImage(activeTile.visual.texture);
-				if (img.complete) {
+				const img = textureImage(activeTile.visual.texture, options.onTextureLoad);
+				if (!textureFailed.has(activeTile.visual.texture) && img.complete && img.naturalWidth > 0) {
 					ctx.imageSmoothingEnabled = false;
 					ctx.globalAlpha = 0.55;
 					ctx.drawImage(img, px, py, drawWidth, drawHeight);
 					ctx.globalAlpha = 1;
-				} else if (options.onTextureLoad) {
-					if (!img.dataset.ready) {
-						img.dataset.ready = '1';
-						img.onload = () => options.onTextureLoad?.();
-					}
+				} else {
+					ctx.fillStyle = activeTile.visual.color;
+					ctx.fillRect(px, py, drawWidth, drawHeight);
+					ctx.globalAlpha = 1;
 				}
 			} else {
 				ctx.fillStyle = activeTile.visual.color;

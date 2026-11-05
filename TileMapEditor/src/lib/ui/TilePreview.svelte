@@ -41,21 +41,22 @@
 			return;
 		}
 
-		// If the tile has a texture image, draw it
+		ctx.fillStyle = currentTile.visual.color;
+		ctx.fillRect(0, 0, size, size);
+
+		// If the tile has a texture image, draw it (fall back to colour on 404)
 		if (currentTile.visual.texture) {
 			const img = new Image();
 			img.onload = () => {
+				if (img.naturalWidth === 0) return;
 				ctx.imageSmoothingEnabled = false;
 				ctx.drawImage(img, 0, 0, size, size);
 			};
 			img.src = `/asset/tiles/${currentTile.visual.texture}`;
-			if (img.complete) {
+			if (img.complete && img.naturalWidth > 0) {
 				ctx.imageSmoothingEnabled = false;
 				ctx.drawImage(img, 0, 0, size, size);
 			}
-		} else {
-			ctx.fillStyle = currentTile.visual.color;
-			ctx.fillRect(0, 0, size, size);
 		}
 
 		if (tilesetImage && currentSlice && !currentTile.visual.texture) {
