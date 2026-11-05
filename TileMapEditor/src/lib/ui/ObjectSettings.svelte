@@ -17,6 +17,8 @@
 
 	let x = $state(untrack(() => object?.x ?? 0));
 	let y = $state(untrack(() => object?.y ?? 0));
+	let width = $state(untrack(() => object?.width ?? 1));
+	let height = $state(untrack(() => object?.height ?? 1));
 	let values = $state<Record<string, unknown>>(
 		untrack(() => {
 			const next: Record<string, unknown> = {};
@@ -33,8 +35,7 @@
 		const matches =
 			(attribute.type === 'number' && typeof current === 'number') ||
 			(attribute.type === 'boolean' && typeof current === 'boolean') ||
-			((attribute.type === 'string' || attribute.type === 'color') &&
-				typeof current === 'string');
+			((attribute.type === 'string' || attribute.type === 'color') && typeof current === 'string');
 		return matches ? current : defaultAttributeValue(attribute);
 	}
 
@@ -55,6 +56,18 @@
 		const nextY = Number(y);
 		if (!Number.isInteger(nextX) || !Number.isInteger(nextY)) {
 			error = 'Position must use whole numbers.';
+			return;
+		}
+
+		const nextWidth = Number(width);
+		const nextHeight = Number(height);
+		if (
+			!Number.isInteger(nextWidth) ||
+			!Number.isInteger(nextHeight) ||
+			nextWidth < 1 ||
+			nextHeight < 1
+		) {
+			error = 'Size must use whole numbers of at least 1 tile.';
 			return;
 		}
 
@@ -80,8 +93,16 @@
 			properties[attribute.name] = value;
 		}
 
-		if (!editor.updateObject(object.id, { x: nextX, y: nextY, properties })) {
-			error = 'Could not save the object. Check the position and try again.';
+		if (
+			!editor.updateObject(object.id, {
+				x: nextX,
+				y: nextY,
+				width: nextWidth,
+				height: nextHeight,
+				properties
+			})
+		) {
+			error = 'Could not save the object. Check the map bounds and other objects of this type.';
 			return;
 		}
 		error = '';
@@ -105,6 +126,19 @@
 		}
 		if (axis === 'x') x = value;
 		else y = value;
+		persist();
+	}
+
+	function updateSize(axis: 'width' | 'height', event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		if (input.value.trim() === '') return;
+		const value = Number(input.value);
+		if (!Number.isInteger(value) || value < 1) {
+			error = 'Size must use whole numbers of at least 1 tile.';
+			return;
+		}
+		if (axis === 'width') width = value;
+		else height = value;
 		persist();
 	}
 
@@ -168,6 +202,39 @@
 						/>
 					</label>
 				</div>
+
+				<div class="field-label mt-2">Size</div>
+				<div class="grid grid-cols-2 gap-2">
+					<label class="block">
+						<span class="field-label">Width</span>
+						<input
+							class="field-sm mono"
+							type="number"
+							min="1"
+							step="1"
+							value={width}
+							oninput={(event) => updateSize('width', event)}
+							onfocus={beginEdit}
+							onblur={endEdit}
+						/>
+					</label>
+					<label class="block">
+						<span class="field-label">Height</span>
+						<input
+							class="field-sm mono"
+							type="number"
+							min="1"
+							step="1"
+							value={height}
+							oninput={(event) => updateSize('height', event)}
+							onfocus={beginEdit}
+							onblur={endEdit}
+						/>
+					</label>
+				</div>
+				<p class="mt-1 text-[10px] leading-4" style="color: var(--text-faint)">
+					Size is in tiles. Resizing keeps the top-left corner fixed.
+				</p>
 			</div>
 
 			<div class="divider"></div>
