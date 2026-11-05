@@ -117,7 +117,10 @@ function parseTiles(value: unknown): TileDefs {
 
 		const tile: TileDef = {
 			solid: rawTile.solid,
-			visual: { color: readString(rawTile.visual.color, `${path}.visual.color`) }
+			visual: { 
+				color: readString(rawTile.visual.color, `${path}.visual.color`), 
+				texture: ''
+			}
 		};
 		tiles[id] = tile;
 	}

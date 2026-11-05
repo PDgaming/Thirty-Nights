@@ -26,6 +26,7 @@ export interface MapRenderOptions {
 	activeLayerId: string | null;
 	activeObjectTypeId: string | null;
 	objectColors: Record<string, string>;
+	onTextureLoad?: () => void;
 	selectedCell: CellPosition | null;
 	draggingObjectId: string | null;
 	dragTarget: CellPosition | null;
@@ -44,6 +45,18 @@ const ERASE = '#e07b72';
 const SPAWN = '#d9a441';
 const OBJECT = '#c98bb9';
 const OBJECT_INK = '#141414';
+
+const textureCache = new Map<string, HTMLImageElement>();
+
+function textureImage(name: string): HTMLImageElement {
+	let img = textureCache.get(name);
+	if (!img) {
+		img = new Image();
+		img.src = name;
+		textureCache.set(name, img);
+	}
+	return img;
+}
 
 export function drawMap(options: MapRenderOptions): void {
 	const { ctx, width, height, map, view } = options;
@@ -129,10 +142,24 @@ function drawLayers(
 				const drawWidth = Math.ceil(tilePx);
 				const drawHeight = Math.ceil(tilePx);
 
-				ctx.fillStyle = tile.visual.color;
-				ctx.fillRect(px, py, drawWidth, drawHeight);
+				// If the tile has a texture image, draw it
+				if (tile.visual.texture) {
+					const img = textureImage(tile.visual.texture);
+					if (img.complete) {
+						ctx.imageSmoothingEnabled = false;
+						ctx.drawImage(img, px, py, drawWidth, drawHeight);
+					} else if (options.onTextureLoad) {
+						if (!img.dataset.ready) {
+							img.dataset.ready = '1';
+							img.onload = () => options.onTextureLoad?.();
+						}
+					}
+				} else {
+					ctx.fillStyle = tile.visual.color;
+					ctx.fillRect(px, py, drawWidth, drawHeight);
+				}
 
-				if (canDrawArt && tileset) {
+				if (canDrawArt && tileset && !tile.visual.texture) {
 					const sliceIndex = tileset.bindings[tileID];
 					const slice = sliceIndex === undefined ? undefined : tileset.slices[sliceIndex];
 					if (slice) {
@@ -235,14 +262,16 @@ interface FootprintPx {
 /** Pixel rectangle for an object's footprint at the current zoom. */
 function footprintPx(
 	view: Viewport,
-	object: Pick<ObjectData, 'x' | 'y' | 'width' | 'height'>,
+	object: Pick<ObjectData, 'x' | 'y' | 'width' | 'height'> & { properties: Record<string, unknown> },
 	tilePx: number
 ): FootprintPx {
+	const interactionPadding = (object.properties['interactionPadding'] as number) ?? 0;
+	const pad = interactionPadding * tilePx;
 	return {
-		px: view.offsetX + object.x * tilePx,
-		py: view.offsetY + object.y * tilePx,
-		width: Math.ceil(object.width * tilePx),
-		height: Math.ceil(object.height * tilePx)
+		px: view.offsetX + object.x * tilePx - pad,
+		py: view.offsetY + object.y * tilePx - pad,
+		width: Math.ceil(object.width * tilePx + pad * 2),
+		height: Math.ceil(object.height * tilePx + pad * 2)
 	};
 }
 
@@ -469,11 +498,28 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 		const activeLayerVisible = activeLayerId !== null && !hiddenLayers.includes(activeLayerId);
 		if (activeLayerVisible && activeTile) {
 			ctx.globalAlpha = 0.55;
-			ctx.fillStyle = activeTile.visual.color;
-			ctx.fillRect(px, py, drawWidth, drawHeight);
+			// If the tile has a texture image, draw it; otherwise use solid color
+			if (activeTile.visual.texture) {
+				const img = textureImage(activeTile.visual.texture);
+				if (img.complete) {
+					ctx.imageSmoothingEnabled = false;
+					ctx.globalAlpha = 0.55;
+					ctx.drawImage(img, px, py, drawWidth, drawHeight);
+					ctx.globalAlpha = 1;
+				} else if (options.onTextureLoad) {
+					if (!img.dataset.ready) {
+						img.dataset.ready = '1';
+						img.onload = () => options.onTextureLoad?.();
+					}
+				}
+			} else {
+				ctx.fillStyle = activeTile.visual.color;
+				ctx.fillRect(px, py, drawWidth, drawHeight);
 
-			if (showTilesetArt && tileset?.image?.complete) {
-				drawTileArt(ctx, activeTileId, px, py, drawWidth, drawHeight, tileset);
+				if (showTilesetArt && tileset?.image?.complete) {
+					drawTileArt(ctx, activeTileId, px, py, drawWidth, drawHeight, tileset);
+				}
+				ctx.globalAlpha = 1;
 			}
 			ctx.globalAlpha = 1;
 			ctx.strokeStyle = ACCENT;

@@ -150,7 +150,8 @@ const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [
 			{ name: 'dialogueId', type: 'string' },
 			{ name: 'color', type: 'color', default: '#e8a87c' },
 			{ name: 'facing', type: 'string', default: 'down' },
-			{ name: 'solid', type: 'boolean', default: true }
+			{ name: 'solid', type: 'boolean', default: true },
+			{ name: 'interactionPadding', type: 'number', default: 6 }
 		]
 	}
 ];
@@ -1120,6 +1121,12 @@ export class EditorState {
 		}
 		this.commit();
 	}
+
+	setTileTexture(id: string, texture: string): void {
+		if (!updateTile(this.map, id, { visual: { color: '#7a828c', texture } })) return;
+		this.commit();
+	}
+
 
 	renameActiveTile(newID: string): boolean {
 		const oldID = this.activeTileId;

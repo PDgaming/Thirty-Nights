@@ -5,6 +5,7 @@ export const FORMAT_VERSION = 1;
 
 export interface TileVisual {
 	color: string;
+	texture?: string;
 }
 
 export interface TileDef {
@@ -17,9 +18,12 @@ export type TileDefs = Record<string, TileDef>;
 /** Empty cells are represented by the empty string, matching the Go loader. */
 export type Cell = string;
 
+export const LAYER_TYPES = ['tile', 'npc'] as const;
+export type LayerType = (typeof LAYER_TYPES)[number];
+
 export interface LayerData {
 	id: string;
-	type: 'tile';
+	type: LayerType;
 	z_index: number;
 	collision: CollisionName;
 	/** Row-major grid: grid[y][x]. */

@@ -53,6 +53,7 @@
 			showGrid: editor.showGrid,
 			showTilesetArt: editor.showTilesetArt,
 			tileset: editor.tilesetRenderData,
+			onTextureLoad: () => scheduleRender(),
 			hover: editor.hover,
 			activeTileId: editor.activeTileId,
 			activeLayerId: editor.activeLayerId,

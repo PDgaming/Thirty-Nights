@@ -16,7 +16,13 @@ export function serializeMap(map: GameMap): GameMap {
 		tiles: Object.fromEntries(
 			Object.entries(map.tiles).map(([id, tile]) => [
 				id,
-				{ solid: tile.solid, visual: { color: tile.visual.color } }
+				{
+					solid: tile.solid,
+					visual: {
+						color: tile.visual.color,
+						texture: `${id}.png`
+					}
+				}
 			])
 		),
 		layers: map.layers.map((layer) => ({

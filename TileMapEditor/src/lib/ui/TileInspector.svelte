@@ -114,6 +114,32 @@
 							/>
 						</div>
 					</label>
+					<label>
+						<span class="field-label">Texture</span>
+						<div class="flex items-center gap-1.5">
+							<input
+								type="file"
+								accept="image/*"
+								class="btn btn-xs"
+								onchange={(event) => {
+									const file = (event.target as HTMLInputElement).files?.[0];
+									if (!file) return;
+									const reader = new FileReader();
+									reader.onload = (e) => {
+										if (!e.target?.result) return;
+										editor.setTileTexture(metadata, e.target.result as string);
+									};
+									reader.readAsDataURL(file);
+								}}
+								title="Upload tile texture image"
+							>
+							{#if tile.visual.texture}
+								<span class="texture-preview">
+									<img src={tile.visual.texture} alt="tile texture" class="texture-img" />
+								</span>
+							{/if}
+						</div>
+					</label>
 				</div>
 			</div>
 			<div class="flex items-center gap-2">
@@ -236,5 +262,20 @@
 	.tile-delete:hover:not(:disabled) {
 		color: var(--danger);
 		background: rgba(248, 113, 113, 0.12);
+	}
+
+	.texture-preview {
+		display: inline-block;
+		width: 32px;
+		height: 32px;
+		margin-left: 4px;
+		border: 1px solid var(--border);
+		background-size: cover;
+		background-position: center;
+	}
+	.texture-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 </style>
