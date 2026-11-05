@@ -48,7 +48,7 @@
 				ctx.imageSmoothingEnabled = false;
 				ctx.drawImage(img, 0, 0, size, size);
 			};
-			img.src = currentTile.visual.texture!;
+			img.src = `/asset/tiles/${currentTile.visual.texture}`;
 			if (img.complete) {
 				ctx.imageSmoothingEnabled = false;
 				ctx.drawImage(img, 0, 0, size, size);

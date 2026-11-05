@@ -124,18 +124,13 @@
 								onchange={(event) => {
 									const file = (event.target as HTMLInputElement).files?.[0];
 									if (!file) return;
-									const reader = new FileReader();
-									reader.onload = (e) => {
-										if (!e.target?.result) return;
-										editor.setTileTexture(metadata, e.target.result as string);
-									};
-									reader.readAsDataURL(file);
+									editor.setTileTexture(metadata, `${metadata}.png`);
 								}}
 								title="Upload tile texture image"
 							>
 							{#if tile.visual.texture}
 								<span class="texture-preview">
-									<img src={tile.visual.texture} alt="tile texture" class="texture-img" />
+									<img src={`/asset/tiles/${tile.visual.texture}`} alt="tile texture" class="texture-img" />
 								</span>
 							{/if}
 						</div>

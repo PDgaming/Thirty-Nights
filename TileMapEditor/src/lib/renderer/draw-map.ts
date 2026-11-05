@@ -52,7 +52,7 @@ function textureImage(name: string): HTMLImageElement {
 	let img = textureCache.get(name);
 	if (!img) {
 		img = new Image();
-		img.src = name;
+		img.src = `/asset/tiles/${name}`;
 		textureCache.set(name, img);
 	}
 	return img;
