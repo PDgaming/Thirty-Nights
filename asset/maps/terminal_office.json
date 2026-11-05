@@ -10,44 +10,54 @@
       "solid": true,
       "visual": {
         "color": "#101820",
-        "texture": "void.png"
+        "texture": "void"
       }
     },
     "floor": {
       "solid": false,
       "visual": {
         "color": "#555B62",
-        "texture": "floor.png"
+        "texture": "floor"
       }
     },
     "wall": {
       "solid": true,
       "visual": {
         "color": "#7a828c",
-        "texture": "wall.png"
+        "texture": "wall"
       }
     },
     "door": {
       "solid": true,
       "visual": {
         "color": "#9A7047",
-        "texture": "door.png"
+        "texture": "door"
       }
     },
     "table": {
       "solid": true,
       "visual": {
         "color": "#b5835a",
-        "texture": "table.png"
+        "texture": "table"
       }
     },
     "seat": {
       "solid": true,
       "visual": {
         "color": "#60a5fa",
-        "texture": "seat.png"
+        "texture": "seat"
       }
     }
+  },
+  "textures": {
+    "void": "void.png",
+    "floor": "floor.png",
+    "wall": "wall.png",
+    "table": "table.png",
+    "door": "door_closed.png",
+    "seat": "seat.png",
+    "door_closed": "door_closed.png",
+    "door_open": "door_closed.png"
   },
   "layers": [
     {
