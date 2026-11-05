@@ -201,6 +201,67 @@ describe('resize', () => {
 		resizeMap(map, 2, 2);
 		expect(map.objects.map((object) => object.id)).toEqual(['in']);
 	});
+
+	it('reports and drops objects whose footprint overflows the new bounds', () => {
+		const map = baseMap();
+		map.objects = [
+			{
+				id: 'fits',
+				type: 'floor',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 2,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'over-right',
+				type: 'floor',
+				layer: 'floor',
+				x: 1,
+				y: 0,
+				width: 2,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'over-bottom',
+				type: 'floor',
+				layer: 'floor',
+				x: 0,
+				y: 1,
+				width: 1,
+				height: 2,
+				properties: {}
+			},
+			{ id: 'out', type: 'floor', layer: 'floor', x: 3, y: 2, width: 1, height: 1, properties: {} }
+		];
+
+		expect(describeResizeLoss(map, 2, 2).removedObjects).toBe(3);
+		resizeMap(map, 2, 2);
+		expect(map.objects.map((object) => object.id)).toEqual(['fits']);
+	});
+
+	it('keeps an object whose footprint fits exactly at the new edge', () => {
+		const map = baseMap();
+		map.objects = [
+			{
+				id: 'edge',
+				type: 'floor',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 2,
+				height: 2,
+				properties: {}
+			}
+		];
+
+		expect(describeResizeLoss(map, 2, 2).removedObjects).toBe(0);
+		resizeMap(map, 2, 2);
+		expect(map.objects.map((object) => object.id)).toEqual(['edge']);
+	});
 });
 
 describe('object operations', () => {
@@ -244,5 +305,56 @@ describe('object operations', () => {
 		addObject(map, 'door', 'floor', 1, 0);
 		renameObjectsOfType(map, 'door', 'gate');
 		expect(map.objects.map((object) => object.type)).toEqual(['gate', 'gate']);
+	});
+
+	it('adds a multi-tile object with explicit dimensions', () => {
+		const map = baseMap();
+		const object = addObject(map, 'door', 'floor', 1, 1, { locked: false }, 2, 1);
+
+		expect(object).toMatchObject({
+			type: 'door',
+			layer: 'floor',
+			x: 1,
+			y: 1,
+			width: 2,
+			height: 1,
+			properties: { locked: false }
+		});
+		expect(map.layers[0].grid[1][1]).toBe('');
+	});
+
+	it('rejects invalid or out-of-map footprints', () => {
+		const map = baseMap();
+		expect(addObject(map, 'door', 'floor', 3, 0, {}, 2, 1)).toBeNull();
+		expect(addObject(map, 'door', 'floor', 0, 2, {}, 1, 2)).toBeNull();
+		expect(addObject(map, 'door', 'floor', 0, 0, {}, 5, 1)).toBeNull();
+		expect(addObject(map, 'door', 'floor', 0, 0, {}, 1, 0)).toBeNull();
+		expect(addObject(map, 'door', 'floor', 0, 0, {}, 1.5, 1)).toBeNull();
+	});
+
+	it('rejects same-type footprint overlap but allows different types', () => {
+		const map = baseMap();
+		addObject(map, 'door', 'floor', 0, 0, {}, 2, 1);
+
+		expect(addObject(map, 'door', 'floor', 1, 0, {}, 1, 1)).toBeNull();
+		expect(addObject(map, 'door', 'floor', 2, 0, {}, 1, 1)).not.toBeNull();
+		expect(addObject(map, 'seat', 'floor', 0, 0, {}, 1, 1)).not.toBeNull();
+	});
+
+	it('removes an object by clicking a covered non-origin cell', () => {
+		const map = baseMap();
+		addObject(map, 'door', 'floor', 0, 0, {}, 2, 1);
+
+		expect(removeObjectsAt(map, 1, 0)).toBe(1);
+		expect(map.objects).toHaveLength(0);
+	});
+
+	it('removes every overlapping object when erasing a shared cell', () => {
+		const map = baseMap();
+		addObject(map, 'door', 'floor', 0, 0, {}, 2, 1);
+		addObject(map, 'seat', 'floor', 1, 0, {}, 1, 1);
+
+		expect(removeObjectsAt(map, 1, 0)).toBe(2);
+		expect(map.objects).toHaveLength(0);
 	});
 });

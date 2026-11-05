@@ -8,6 +8,11 @@ import type {
 	TileDef
 } from './map-model/types';
 import { createTileDef } from './map-model/factory';
+import {
+	cellCoveredByObject,
+	objectFitsInMap,
+	objectFootprintsOverlap
+} from './map-model/object-geometry';
 
 export function findLayer(map: GameMap, layerID: string): LayerData | undefined {
 	return map.layers.find((layer) => layer.id === layerID);
@@ -272,7 +277,8 @@ export function uniqueObjectId(map: GameMap, base = 'object'): string {
 /**
  * Adds an object to the map's object list. Objects are not written into layer
  * grids, so the layer is only recorded as the object's layer reference.
- * Returns null for invalid types, positions, layers, or duplicate type+cells.
+ * Returns null for invalid types, dimensions, layers, or overlapping footprints
+ * of the same type.
  */
 export function addObject(
 	map: GameMap,
@@ -280,12 +286,24 @@ export function addObject(
 	layerID: string,
 	x: number,
 	y: number,
-	properties: Record<string, unknown> = {}
+	properties: Record<string, unknown> = {},
+	width = 1,
+	height = 1
 ): ObjectData | null {
 	const trimmed = type.trim();
 	if (trimmed === '' || !inBounds(map, x, y)) return null;
 	if (!findLayer(map, layerID)) return null;
-	if (map.objects.some((object) => object.type === trimmed && object.x === x && object.y === y)) {
+	if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+		return null;
+	}
+
+	const candidate = { x, y, width, height };
+	if (!objectFitsInMap(candidate, map.width, map.height)) return null;
+	if (
+		map.objects.some(
+			(object) => object.type === trimmed && objectFootprintsOverlap(object, candidate)
+		)
+	) {
 		return null;
 	}
 
@@ -295,8 +313,8 @@ export function addObject(
 		layer: layerID,
 		x,
 		y,
-		width: 1,
-		height: 1,
+		width,
+		height,
 		properties: { ...properties }
 	};
 	map.objects = [...map.objects, object];
@@ -304,7 +322,7 @@ export function addObject(
 }
 
 export function removeObjectsAt(map: GameMap, x: number, y: number): number {
-	const next = map.objects.filter((object) => object.x !== x || object.y !== y);
+	const next = map.objects.filter((object) => !cellCoveredByObject(object, x, y));
 	const removed = map.objects.length - next.length;
 	if (removed > 0) map.objects = next;
 	return removed;
@@ -351,7 +369,7 @@ export function describeResizeLoss(map: GameMap, width: number, height: number):
 	}
 
 	const removedObjects = map.objects.filter(
-		(object) => object.x >= width || object.y >= height
+		(object) => !objectFitsInMap(object, width, height)
 	).length;
 	const spawnMoved = map.spawn.x >= width || map.spawn.y >= height;
 
@@ -373,7 +391,7 @@ export function resizeMap(map: GameMap, width: number, height: number): ResizeRe
 		layer.grid = next;
 	}
 
-	map.objects = map.objects.filter((object) => object.x < width && object.y < height);
+	map.objects = map.objects.filter((object) => objectFitsInMap(object, width, height));
 	if (result.spawnMoved) {
 		map.spawn = {
 			x: Math.min(Math.max(0, map.spawn.x), width - 1),
