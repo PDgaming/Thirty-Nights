@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createEmptyMap, createLayer, createTileDef } from './map-model/factory';
 import type { GameMap } from './map-model/types';
+import { parseMapData } from './map-importer';
 import { hasBlockingErrors, validateMap } from './map-validation';
 
 function validMap(): GameMap {
@@ -128,5 +129,91 @@ describe('validateMap', () => {
 		const map = validMap();
 		map.layers.push(createLayer('floor', 'none', 4, 3, 1));
 		expect(messages(map).join('|')).toContain('duplicate layer ID');
+	});
+
+	it('accepts single and multi-tile footprints that fit', () => {
+		const map = validMap();
+		map.objects = [
+			{ id: 'single', type: 'chest', layer: 'floor', x: 0, y: 0, width: 1, height: 1, properties: {} },
+			{ id: 'wide', type: 'chest', layer: 'floor', x: 1, y: 0, width: 2, height: 1, properties: {} },
+			{ id: 'block', type: 'chest', layer: 'floor', x: 1, y: 0, width: 3, height: 2, properties: {} }
+		];
+		expect(hasBlockingErrors(validateMap(map))).toBe(false);
+	});
+
+	it('rejects zero, negative, and fractional dimensions', () => {
+		const map = validMap();
+		map.objects = [
+			{ id: 'zero', type: 'chest', layer: 'floor', x: 0, y: 0, width: 0, height: 1, properties: {} },
+			{ id: 'negative', type: 'chest', layer: 'floor', x: 0, y: 0, width: 1, height: -2, properties: {} },
+			{ id: 'fractional', type: 'chest', layer: 'floor', x: 0, y: 0, width: 1.5, height: 1, properties: {} }
+		];
+		const text = messages(map).join('|');
+		expect(text).toContain(
+			'objects[0].width: object width must be an integer of at least 1'
+		);
+		expect(text).toContain(
+			'objects[1].height: object height must be an integer of at least 1'
+		);
+		expect(text).toContain(
+			'objects[2].width: object width must be an integer of at least 1'
+		);
+	});
+
+	it('rejects footprints that overflow the right and bottom edges', () => {
+		const map = validMap();
+		map.objects = [
+			{ id: 'right', type: 'chest', layer: 'floor', x: 3, y: 0, width: 2, height: 1, properties: {} },
+			{ id: 'bottom', type: 'chest', layer: 'floor', x: 0, y: 2, width: 1, height: 2, properties: {} }
+		];
+		const text = messages(map).join('|');
+		expect(text).toContain(
+			'objects[0].width: object width 2 at x 3 extends past the map width of 4'
+		);
+		expect(text).toContain(
+			'objects[1].height: object height 2 at y 2 extends past the map height of 3'
+		);
+	});
+
+	it('accepts an exact fit at the right and bottom edges', () => {
+		const map = validMap();
+		map.objects = [
+			{ id: 'right', type: 'chest', layer: 'floor', x: 2, y: 0, width: 2, height: 1, properties: {} },
+			{ id: 'bottom', type: 'chest', layer: 'floor', x: 0, y: 1, width: 1, height: 2, properties: {} }
+		];
+		expect(hasBlockingErrors(validateMap(map))).toBe(false);
+	});
+
+	it('rejects an origin outside the map', () => {
+		const map = validMap();
+		map.objects = [
+			{ id: 'negative', type: 'chest', layer: 'floor', x: -1, y: 0, width: 1, height: 1, properties: {} }
+		];
+		expect(messages(map).join('|')).toContain('must be inside the map');
+	});
+
+	it('validates an old map after the importer defaults missing dimensions', () => {
+		const raw = JSON.parse(JSON.stringify(validMap())) as Record<string, unknown>;
+		raw.objects = [
+			{ id: 'chest-1', type: 'chest', layer: 'floor', x: 1, y: 1, properties: {} }
+		];
+		const imported = parseMapData(raw);
+		expect(imported.objects[0]).toMatchObject({ width: 1, height: 1 });
+		expect(hasBlockingErrors(validateMap(imported))).toBe(false);
+	});
+
+	it('applies the door tile rule to a multi-tile door', () => {
+		const map = validMap();
+		map.tiles.door = createTileDef('#9A7047', true);
+		map.objects = [
+			{ id: 'door-1', type: 'door', layer: 'floor', x: 2, y: 1, width: 2, height: 1, properties: {} }
+		];
+		expect(hasBlockingErrors(validateMap(map))).toBe(false);
+
+		const missing = validMap();
+		missing.objects = [
+			{ id: 'door-2', type: 'door', layer: 'floor', x: 0, y: 0, width: 2, height: 1, properties: {} }
+		];
+		expect(messages(missing).join('|')).toContain('must also exist as a tile definition');
 	});
 });

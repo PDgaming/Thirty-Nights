@@ -100,4 +100,16 @@ describe('map schema', () => {
 		expect(parsed.width).toBe(3);
 		expect(parsed.weather).toBe('clear');
 	});
+
+	it('describes optional object width and height as positive integers', () => {
+		const properties = DEFAULT_MAP_SCHEMA.properties as Record<string, unknown>;
+		const objects = properties.objects as {
+			items: { required: string[]; properties: Record<string, unknown> };
+		};
+
+		expect(objects.items.properties.width).toMatchObject({ type: 'integer', minimum: 1 });
+		expect(objects.items.properties.height).toMatchObject({ type: 'integer', minimum: 1 });
+		expect(objects.items.required).not.toContain('width');
+		expect(objects.items.required).not.toContain('height');
+	});
 });

@@ -1,5 +1,6 @@
 import type { GameMap, LayerData, ObjectData, TileDefs } from './map-model/types';
 import { COLLISION_TYPES, FORMAT_VERSION } from './map-model/types';
+import { objectFitsInMap } from './map-model/object-geometry';
 
 export type IssueSeverity = 'error' | 'warning';
 
@@ -254,10 +255,32 @@ function validateObject(
 	} else if (!layerIDs.has(object.layer)) {
 		error(path + '.layer', `references undefined layer "${object.layer}"`);
 	}
+	const widthValid = isPositiveInteger(object.width);
+	const heightValid = isPositiveInteger(object.height);
+	if (!widthValid) {
+		error(path + '.width', 'object width must be an integer of at least 1');
+	}
+	if (!heightValid) {
+		error(path + '.height', 'object height must be an integer of at least 1');
+	}
+
 	if (!Number.isInteger(object.x) || !Number.isInteger(object.y)) {
 		error(path, 'object x and y must be integers');
 	} else if (object.x < 0 || object.y < 0 || object.x >= map.width || object.y >= map.height) {
 		error(path, `object (${object.x}, ${object.y}) must be inside the map`);
+	} else if (widthValid && heightValid && !objectFitsInMap(object, map.width, map.height)) {
+		if (object.x + object.width > map.width) {
+			error(
+				path + '.width',
+				`object width ${object.width} at x ${object.x} extends past the map width of ${map.width}`
+			);
+		}
+		if (object.y + object.height > map.height) {
+			error(
+				path + '.height',
+				`object height ${object.height} at y ${object.y} extends past the map height of ${map.height}`
+			);
+		}
 	}
 	if (!isPlainObject(object.properties)) {
 		error(path + '.properties', 'properties must be an object');

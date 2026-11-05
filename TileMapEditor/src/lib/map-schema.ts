@@ -91,6 +91,16 @@ export const DEFAULT_MAP_SCHEMA: MapSchema = {
 					layer: { type: 'string' },
 					x: { type: 'integer' },
 					y: { type: 'integer' },
+					width: {
+						type: 'integer',
+						minimum: 1,
+						description: 'Footprint width in cells. Optional so older maps remain valid.'
+					},
+					height: {
+						type: 'integer',
+						minimum: 1,
+						description: 'Footprint height in cells. Optional so older maps remain valid.'
+					},
 					properties: { type: 'object' }
 				}
 			}
