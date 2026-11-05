@@ -13,7 +13,7 @@ const (
 	mapDir      = "asset/maps"
 	dialogueDir = "asset/dialogues"
 	level       = "terminal_office"
-	debug       = true
+	debug       = false
 )
 
 func main() {

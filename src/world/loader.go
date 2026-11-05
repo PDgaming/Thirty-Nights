@@ -162,6 +162,12 @@ func (m *MapData) LoadTileTextures() error {
 			continue
 		}
 
+		// Resolve through the map's textures map when possible, otherwise
+		// treat the value as a file name.
+		if path, ok := m.Textures[textureName]; ok {
+			textureName = path
+		}
+
 		fullPath := "asset/tiles/" + textureName
 		if _, statErr := os.Stat(fullPath); statErr != nil {
 			fmt.Printf("warning: tile texture not found for %q: %s (skipping)\n", tileID, fullPath)
