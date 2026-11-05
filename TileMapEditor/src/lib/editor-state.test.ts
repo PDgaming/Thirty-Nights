@@ -536,6 +536,8 @@ describe('npc authoring', () => {
 				layer: 'floor',
 				x: 1,
 				y: 1,
+				width: 1,
+				height: 1,
 				properties: { dialogueId: 'terminal_intro' }
 			}
 		];

@@ -40,7 +40,16 @@ describe('parseMapJson', () => {
 		map.tiles = { floor: createTileDef('#555B62'), door: createTileDef('#9A7047', true) };
 		map.layers[0].grid[0][1] = 'floor';
 		map.objects = [
-			{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 0, properties: { locked: false } }
+			{
+				id: 'door-1',
+				type: 'door',
+				layer: 'floor',
+				x: 1,
+				y: 0,
+				width: 1,
+				height: 1,
+				properties: { locked: false }
+			}
 		];
 		map.spawn = { x: 2, y: 1 };
 
@@ -144,13 +153,15 @@ describe('parseMapJson', () => {
 		);
 
 		expect(parsed.objects).toEqual([
-			{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 0, properties: {} },
+			{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 0, width: 1, height: 1, properties: {} },
 			{
 				id: 'receptionist',
 				type: 'npc',
 				layer: 'floor',
 				x: 2,
 				y: 0,
+				width: 1,
+				height: 1,
 				properties: { dialogueId: 'intro' }
 			}
 		]);

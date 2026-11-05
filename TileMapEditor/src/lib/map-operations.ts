@@ -295,6 +295,8 @@ export function addObject(
 		layer: layerID,
 		x,
 		y,
+		width: 1,
+		height: 1,
 		properties: { ...properties }
 	};
 	map.objects = [...map.objects, object];

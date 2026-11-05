@@ -32,6 +32,16 @@ export interface ObjectData {
 	layer: string;
 	x: number;
 	y: number;
+	/**
+	 * Footprint width in tile cells. Always an integer greater than or equal
+	 * to 1. Older maps without this field import as 1.
+	 */
+	width: number;
+	/**
+	 * Footprint height in tile cells. Always an integer greater than or equal
+	 * to 1. Older maps without this field import as 1.
+	 */
+	height: number;
 	properties: Record<string, unknown>;
 }
 

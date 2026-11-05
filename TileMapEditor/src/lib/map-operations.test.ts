@@ -80,7 +80,9 @@ describe('layer operations', () => {
 
 	it('renames layers and updates object references', () => {
 		const map = baseMap();
-		map.objects = [{ id: 'o1', type: 'door', layer: 'floor', x: 0, y: 0, properties: {} }];
+		map.objects = [
+			{ id: 'o1', type: 'door', layer: 'floor', x: 0, y: 0, width: 1, height: 1, properties: {} }
+		];
 		expect(renameLayer(map, 'floor', 'ground')).toBe(true);
 		expect(map.objects[0].layer).toBe('ground');
 		expect(renameLayer(map, 'ground', 'walls')).toBe(false);
@@ -153,7 +155,9 @@ describe('tile operations', () => {
 
 	it('refuses to delete a tile used as an object type', () => {
 		const map = baseMap();
-		map.objects = [{ id: 'door-1', type: 'wall', layer: 'floor', x: 0, y: 0, properties: {} }];
+		map.objects = [
+			{ id: 'door-1', type: 'wall', layer: 'floor', x: 0, y: 0, width: 1, height: 1, properties: {} }
+		];
 		expect(removeTile(map, 'wall')).toBe(false);
 	});
 });
@@ -182,8 +186,8 @@ describe('resize', () => {
 	it('drops objects outside the new bounds', () => {
 		const map = baseMap();
 		map.objects = [
-			{ id: 'in', type: 'floor', layer: 'floor', x: 0, y: 0, properties: {} },
-			{ id: 'out', type: 'floor', layer: 'floor', x: 3, y: 2, properties: {} }
+			{ id: 'in', type: 'floor', layer: 'floor', x: 0, y: 0, width: 1, height: 1, properties: {} },
+			{ id: 'out', type: 'floor', layer: 'floor', x: 3, y: 2, width: 1, height: 1, properties: {} }
 		];
 		resizeMap(map, 2, 2);
 		expect(map.objects.map((object) => object.id)).toEqual(['in']);

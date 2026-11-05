@@ -32,6 +32,8 @@ export function serializeMap(map: GameMap): GameMap {
 			layer: object.layer,
 			x: object.x,
 			y: object.y,
+			width: object.width,
+			height: object.height,
 			properties: { ...object.properties }
 		})),
 		spawn: { x: map.spawn.x, y: map.spawn.y }

@@ -14,6 +14,8 @@ function map() {
 			layer: 'floor',
 			x: 1,
 			y: 0,
+			width: 1,
+			height: 1,
 			properties: { locked: false }
 		}
 	];

@@ -188,6 +188,14 @@ function parseObjectList(value: unknown, key: string, forcedType?: string): Obje
 			layer: readString(rawObject.layer, `${path}.layer`),
 			x: readInteger(rawObject.x, `${path}.x`),
 			y: readInteger(rawObject.y, `${path}.y`),
+			width:
+				rawObject.width === undefined
+					? 1
+					: readInteger(rawObject.width, `${path}.width`, 1),
+			height:
+				rawObject.height === undefined
+					? 1
+					: readInteger(rawObject.height, `${path}.height`, 1),
 			properties
 		};
 	});

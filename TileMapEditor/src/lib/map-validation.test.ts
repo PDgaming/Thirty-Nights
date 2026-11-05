@@ -89,6 +89,8 @@ describe('validateMap', () => {
 				layer: 'nope',
 				x: 9,
 				y: 0,
+				width: 1,
+				height: 1,
 				properties: {}
 			}
 		];
@@ -99,20 +101,26 @@ describe('validateMap', () => {
 
 	it('does not flag object types it does not recognize', () => {
 		const map = validMap();
-		map.objects = [{ id: 'chest-1', type: 'chest', layer: 'floor', x: 1, y: 1, properties: {} }];
+		map.objects = [
+			{ id: 'chest-1', type: 'chest', layer: 'floor', x: 1, y: 1, width: 1, height: 1, properties: {} }
+		];
 		expect(validateMap(map)).toEqual([]);
 	});
 
 	it('requires a door object to have a door tile definition', () => {
 		const map = validMap();
-		map.objects = [{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 1, properties: {} }];
+		map.objects = [
+			{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 1, width: 1, height: 1, properties: {} }
+		];
 		expect(messages(map).join('|')).toContain('must also exist as a tile definition');
 	});
 
 	it('accepts a door object when the door tile exists', () => {
 		const map = validMap();
 		map.tiles.door = createTileDef('#9A7047', true);
-		map.objects = [{ id: 'door-1', type: 'door', layer: 'floor', x: 2, y: 1, properties: {} }];
+		map.objects = [
+			{ id: 'door-1', type: 'door', layer: 'floor', x: 2, y: 1, width: 1, height: 1, properties: {} }
+		];
 		expect(hasBlockingErrors(validateMap(map))).toBe(false);
 	});
 
