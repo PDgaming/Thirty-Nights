@@ -6,6 +6,7 @@ export const FORMAT_VERSION = 1;
 export interface TileVisual {
 	color: string;
 	texture?: string;
+	textureData?: string;
 }
 
 export interface TileDef {

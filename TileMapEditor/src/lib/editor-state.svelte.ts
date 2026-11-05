@@ -1122,8 +1122,8 @@ export class EditorState {
 		this.commit();
 	}
 
-	setTileTexture(id: string, texture: string): void {
-		if (!updateTile(this.map, id, { visual: { color: '#7a828c', texture } })) return;
+	setTileTexture(id: string, textureData: string): void {
+		if (!updateTile(this.map, id, { visual: { color: '#7a828c', texture: `${id}.png`, textureData } })) return;
 		this.commit();
 	}
 

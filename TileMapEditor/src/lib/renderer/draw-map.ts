@@ -49,20 +49,20 @@ const OBJECT_INK = '#141414';
 const textureCache = new Map<string, HTMLImageElement>();
 const textureFailed = new Set<string>();
 
-function textureImage(name: string, onLoad?: () => void): HTMLImageElement {
-	let img = textureCache.get(name);
+function textureImage(key: string, src: string, onLoad?: () => void): HTMLImageElement {
+	let img = textureCache.get(key);
 	if (!img) {
 		img = new Image();
 		img.onload = () => {
-			textureFailed.delete(name);
+			textureFailed.delete(key);
 			onLoad?.();
 		};
 		img.onerror = () => {
-			textureFailed.add(name);
+			textureFailed.add(key);
 			onLoad?.();
 		};
-		img.src = `/asset/tiles/${name}`;
-		textureCache.set(name, img);
+		img.src = src;
+		textureCache.set(key, img);
 	}
 	return img;
 }
@@ -152,9 +152,14 @@ function drawLayers(
 				const drawHeight = Math.ceil(tilePx);
 
 				// If the tile has a texture image, draw it
-				if (tile.visual.texture) {
-					const img = textureImage(tile.visual.texture, options.onTextureLoad);
-					if (!textureFailed.has(tile.visual.texture) && img.complete && img.naturalWidth > 0) {
+				const tileSrc = tile.visual.textureData
+					? tile.visual.textureData
+					: tile.visual.texture
+						? `/asset/tiles/${tile.visual.texture}`
+						: '';
+				if (tileSrc) {
+					const img = textureImage(tileSrc, tileSrc, options.onTextureLoad);
+					if (!textureFailed.has(tileSrc) && img.complete && img.naturalWidth > 0) {
 						ctx.imageSmoothingEnabled = false;
 						ctx.drawImage(img, px, py, drawWidth, drawHeight);
 					} else {
@@ -506,9 +511,14 @@ function drawHover(options: MapRenderOptions, tilePx: number): void {
 		if (activeLayerVisible && activeTile) {
 			ctx.globalAlpha = 0.55;
 			// If the tile has a texture image, draw it; otherwise use solid color
-			if (activeTile.visual.texture) {
-				const img = textureImage(activeTile.visual.texture, options.onTextureLoad);
-				if (!textureFailed.has(activeTile.visual.texture) && img.complete && img.naturalWidth > 0) {
+			const hoverSrc = activeTile.visual.textureData
+				? activeTile.visual.textureData
+				: activeTile.visual.texture
+					? `/asset/tiles/${activeTile.visual.texture}`
+					: '';
+			if (hoverSrc) {
+				const img = textureImage(hoverSrc, hoverSrc, options.onTextureLoad);
+				if (!textureFailed.has(hoverSrc) && img.complete && img.naturalWidth > 0) {
 					ctx.imageSmoothingEnabled = false;
 					ctx.globalAlpha = 0.55;
 					ctx.drawImage(img, px, py, drawWidth, drawHeight);
