@@ -156,7 +156,16 @@ describe('tile operations', () => {
 	it('refuses to delete a tile used as an object type', () => {
 		const map = baseMap();
 		map.objects = [
-			{ id: 'door-1', type: 'wall', layer: 'floor', x: 0, y: 0, width: 1, height: 1, properties: {} }
+			{
+				id: 'door-1',
+				type: 'wall',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 1,
+				height: 1,
+				properties: {}
+			}
 		];
 		expect(removeTile(map, 'wall')).toBe(false);
 	});

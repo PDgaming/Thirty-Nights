@@ -103,7 +103,16 @@ describe('validateMap', () => {
 	it('does not flag object types it does not recognize', () => {
 		const map = validMap();
 		map.objects = [
-			{ id: 'chest-1', type: 'chest', layer: 'floor', x: 1, y: 1, width: 1, height: 1, properties: {} }
+			{
+				id: 'chest-1',
+				type: 'chest',
+				layer: 'floor',
+				x: 1,
+				y: 1,
+				width: 1,
+				height: 1,
+				properties: {}
+			}
 		];
 		expect(validateMap(map)).toEqual([]);
 	});
@@ -111,7 +120,16 @@ describe('validateMap', () => {
 	it('requires a door object to have a door tile definition', () => {
 		const map = validMap();
 		map.objects = [
-			{ id: 'door-1', type: 'door', layer: 'floor', x: 1, y: 1, width: 1, height: 1, properties: {} }
+			{
+				id: 'door-1',
+				type: 'door',
+				layer: 'floor',
+				x: 1,
+				y: 1,
+				width: 1,
+				height: 1,
+				properties: {}
+			}
 		];
 		expect(messages(map).join('|')).toContain('must also exist as a tile definition');
 	});
@@ -120,7 +138,16 @@ describe('validateMap', () => {
 		const map = validMap();
 		map.tiles.door = createTileDef('#9A7047', true);
 		map.objects = [
-			{ id: 'door-1', type: 'door', layer: 'floor', x: 2, y: 1, width: 1, height: 1, properties: {} }
+			{
+				id: 'door-1',
+				type: 'door',
+				layer: 'floor',
+				x: 2,
+				y: 1,
+				width: 1,
+				height: 1,
+				properties: {}
+			}
 		];
 		expect(hasBlockingErrors(validateMap(map))).toBe(false);
 	});
@@ -134,9 +161,36 @@ describe('validateMap', () => {
 	it('accepts single and multi-tile footprints that fit', () => {
 		const map = validMap();
 		map.objects = [
-			{ id: 'single', type: 'chest', layer: 'floor', x: 0, y: 0, width: 1, height: 1, properties: {} },
-			{ id: 'wide', type: 'chest', layer: 'floor', x: 1, y: 0, width: 2, height: 1, properties: {} },
-			{ id: 'block', type: 'chest', layer: 'floor', x: 1, y: 0, width: 3, height: 2, properties: {} }
+			{
+				id: 'single',
+				type: 'chest',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 1,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'wide',
+				type: 'chest',
+				layer: 'floor',
+				x: 1,
+				y: 0,
+				width: 2,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'block',
+				type: 'chest',
+				layer: 'floor',
+				x: 1,
+				y: 0,
+				width: 3,
+				height: 2,
+				properties: {}
+			}
 		];
 		expect(hasBlockingErrors(validateMap(map))).toBe(false);
 	});
@@ -144,27 +198,66 @@ describe('validateMap', () => {
 	it('rejects zero, negative, and fractional dimensions', () => {
 		const map = validMap();
 		map.objects = [
-			{ id: 'zero', type: 'chest', layer: 'floor', x: 0, y: 0, width: 0, height: 1, properties: {} },
-			{ id: 'negative', type: 'chest', layer: 'floor', x: 0, y: 0, width: 1, height: -2, properties: {} },
-			{ id: 'fractional', type: 'chest', layer: 'floor', x: 0, y: 0, width: 1.5, height: 1, properties: {} }
+			{
+				id: 'zero',
+				type: 'chest',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 0,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'negative',
+				type: 'chest',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 1,
+				height: -2,
+				properties: {}
+			},
+			{
+				id: 'fractional',
+				type: 'chest',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 1.5,
+				height: 1,
+				properties: {}
+			}
 		];
 		const text = messages(map).join('|');
-		expect(text).toContain(
-			'objects[0].width: object width must be an integer of at least 1'
-		);
-		expect(text).toContain(
-			'objects[1].height: object height must be an integer of at least 1'
-		);
-		expect(text).toContain(
-			'objects[2].width: object width must be an integer of at least 1'
-		);
+		expect(text).toContain('objects[0].width: object width must be an integer of at least 1');
+		expect(text).toContain('objects[1].height: object height must be an integer of at least 1');
+		expect(text).toContain('objects[2].width: object width must be an integer of at least 1');
 	});
 
 	it('rejects footprints that overflow the right and bottom edges', () => {
 		const map = validMap();
 		map.objects = [
-			{ id: 'right', type: 'chest', layer: 'floor', x: 3, y: 0, width: 2, height: 1, properties: {} },
-			{ id: 'bottom', type: 'chest', layer: 'floor', x: 0, y: 2, width: 1, height: 2, properties: {} }
+			{
+				id: 'right',
+				type: 'chest',
+				layer: 'floor',
+				x: 3,
+				y: 0,
+				width: 2,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'bottom',
+				type: 'chest',
+				layer: 'floor',
+				x: 0,
+				y: 2,
+				width: 1,
+				height: 2,
+				properties: {}
+			}
 		];
 		const text = messages(map).join('|');
 		expect(text).toContain(
@@ -178,8 +271,26 @@ describe('validateMap', () => {
 	it('accepts an exact fit at the right and bottom edges', () => {
 		const map = validMap();
 		map.objects = [
-			{ id: 'right', type: 'chest', layer: 'floor', x: 2, y: 0, width: 2, height: 1, properties: {} },
-			{ id: 'bottom', type: 'chest', layer: 'floor', x: 0, y: 1, width: 1, height: 2, properties: {} }
+			{
+				id: 'right',
+				type: 'chest',
+				layer: 'floor',
+				x: 2,
+				y: 0,
+				width: 2,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'bottom',
+				type: 'chest',
+				layer: 'floor',
+				x: 0,
+				y: 1,
+				width: 1,
+				height: 2,
+				properties: {}
+			}
 		];
 		expect(hasBlockingErrors(validateMap(map))).toBe(false);
 	});
@@ -187,16 +298,23 @@ describe('validateMap', () => {
 	it('rejects an origin outside the map', () => {
 		const map = validMap();
 		map.objects = [
-			{ id: 'negative', type: 'chest', layer: 'floor', x: -1, y: 0, width: 1, height: 1, properties: {} }
+			{
+				id: 'negative',
+				type: 'chest',
+				layer: 'floor',
+				x: -1,
+				y: 0,
+				width: 1,
+				height: 1,
+				properties: {}
+			}
 		];
 		expect(messages(map).join('|')).toContain('must be inside the map');
 	});
 
 	it('validates an old map after the importer defaults missing dimensions', () => {
 		const raw = JSON.parse(JSON.stringify(validMap())) as Record<string, unknown>;
-		raw.objects = [
-			{ id: 'chest-1', type: 'chest', layer: 'floor', x: 1, y: 1, properties: {} }
-		];
+		raw.objects = [{ id: 'chest-1', type: 'chest', layer: 'floor', x: 1, y: 1, properties: {} }];
 		const imported = parseMapData(raw);
 		expect(imported.objects[0]).toMatchObject({ width: 1, height: 1 });
 		expect(hasBlockingErrors(validateMap(imported))).toBe(false);
@@ -206,13 +324,31 @@ describe('validateMap', () => {
 		const map = validMap();
 		map.tiles.door = createTileDef('#9A7047', true);
 		map.objects = [
-			{ id: 'door-1', type: 'door', layer: 'floor', x: 2, y: 1, width: 2, height: 1, properties: {} }
+			{
+				id: 'door-1',
+				type: 'door',
+				layer: 'floor',
+				x: 2,
+				y: 1,
+				width: 2,
+				height: 1,
+				properties: {}
+			}
 		];
 		expect(hasBlockingErrors(validateMap(map))).toBe(false);
 
 		const missing = validMap();
 		missing.objects = [
-			{ id: 'door-2', type: 'door', layer: 'floor', x: 0, y: 0, width: 2, height: 1, properties: {} }
+			{
+				id: 'door-2',
+				type: 'door',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 2,
+				height: 1,
+				properties: {}
+			}
 		];
 		expect(messages(missing).join('|')).toContain('must also exist as a tile definition');
 	});

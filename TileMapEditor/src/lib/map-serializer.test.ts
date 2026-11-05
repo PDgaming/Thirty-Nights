@@ -53,8 +53,88 @@ describe('serializeMap', () => {
 			]
 		});
 		expect(serialized.tiles.door).toEqual({ solid: true, visual: { color: '#9A7047' } });
-		expect(serialized.objects[0].properties).toEqual({ locked: false });
+		expect(serialized.objects[0]).toEqual({
+			id: 'door-1',
+			type: 'door',
+			layer: 'floor',
+			x: 1,
+			y: 0,
+			width: 1,
+			height: 1,
+			properties: { locked: false }
+		});
 		expect(serialized.spawn).toEqual({ x: 2, y: 1 });
+	});
+
+	it('serializes multi-tile objects with explicit dimensions', () => {
+		const source = map();
+		source.width = 5;
+		source.height = 5;
+		source.objects = [
+			{
+				id: 'door-1',
+				type: 'door',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 2,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'seat-1',
+				type: 'seat',
+				layer: 'floor',
+				x: 3,
+				y: 0,
+				width: 1,
+				height: 2,
+				properties: {}
+			},
+			{
+				id: 'console-1',
+				type: 'console',
+				layer: 'floor',
+				x: 0,
+				y: 2,
+				width: 3,
+				height: 3,
+				properties: {}
+			}
+		];
+
+		expect(serializeMap(source).objects).toEqual([
+			{
+				id: 'door-1',
+				type: 'door',
+				layer: 'floor',
+				x: 0,
+				y: 0,
+				width: 2,
+				height: 1,
+				properties: {}
+			},
+			{
+				id: 'seat-1',
+				type: 'seat',
+				layer: 'floor',
+				x: 3,
+				y: 0,
+				width: 1,
+				height: 2,
+				properties: {}
+			},
+			{
+				id: 'console-1',
+				type: 'console',
+				layer: 'floor',
+				x: 0,
+				y: 2,
+				width: 3,
+				height: 3,
+				properties: {}
+			}
+		]);
 	});
 
 	it('does not mutate the source map and deep-copies nested arrays', () => {
