@@ -180,6 +180,31 @@ func (m *MapData) LoadTileTextures() error {
 	return nil
 }
 
+// LoadTextures attempts to load textures from the map's Textures map, which
+// maps an arbitrary texture ID to a file path relative to asset/tiles/.
+func (m *MapData) LoadTextures() error {
+	if m.Textures == nil || len(m.Textures) == 0 {
+		return nil
+	}
+	m.TexturesByID = make(map[string]rl.Texture2D, len(m.Textures))
+
+	for id, relPath := range m.Textures {
+		fullPath := "asset/tiles/" + relPath
+		if _, statErr := os.Stat(fullPath); statErr != nil {
+			fmt.Printf("warning: texture not found for %q: %s (skipping)\n", id, fullPath)
+			continue
+		}
+		texture := rl.LoadTexture(fullPath)
+		if texture.ID == 0 {
+			fmt.Printf("warning: failed to load texture for %q from %s\n", id, fullPath)
+			continue
+		}
+		m.TexturesByID[id] = texture
+	}
+
+	return nil
+}
+
 // LoadAssets attempts to load all asset textures referenced in the map's
 // asset map. Each entry in MapData.Assets maps an asset ID to a relative
 // path under asset/tiles/. Loaded textures are stored in

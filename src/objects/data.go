@@ -15,12 +15,13 @@ func pixelDimension(value int) float32 {
 }
 
 type Door struct {
-	ID      string
-	Bounds  rl.Rectangle
-	Color   rl.Color
-	Texture rl.Texture2D
-	Open    bool
-	Locked  bool
+	ID           string
+	Bounds       rl.Rectangle
+	Color        rl.Color
+	Texture      rl.Texture2D
+	OpenTexture  rl.Texture2D
+	Open         bool
+	Locked       bool
 }
 
 type Seat struct {

@@ -28,10 +28,14 @@ func (d *Door) Update(dt float32) {
 }
 
 func (d *Door) Draw(debug bool) {
-	if d.Texture.ID != 0 {
-		src := rl.Rectangle{X: 0, Y: 0, Width: float32(d.Texture.Width), Height: float32(d.Texture.Height)}
+	texture := d.Texture
+	if d.Open && d.OpenTexture.ID != 0 {
+		texture = d.OpenTexture
+	}
+	if texture.ID != 0 {
+		src := rl.Rectangle{X: 0, Y: 0, Width: float32(texture.Width), Height: float32(texture.Height)}
 		dst := d.Bounds
-		rl.DrawTexturePro(d.Texture, src, dst, rl.Vector2{}, 0, rl.White)
+		rl.DrawTexturePro(texture, src, dst, rl.Vector2{}, 0, rl.White)
 	} else {
 		rl.DrawRectangleRec(d.Bounds, d.Color)
 	}

@@ -213,12 +213,21 @@ func (g *Game) LoadLevel(id string) (err error) {
 	if err := mapData.LoadTileTextures(); err != nil {
 		return fmt.Errorf("world: failed to load tile textures in %q: %w", id, err)
 	}
+	if err := mapData.LoadTextures(); err != nil {
+		return fmt.Errorf("world: failed to load textures in %q: %w", id, err)
+	}
 
 	// Assign loaded textures to objects that use tile textures.
 	for _, obj := range mapData.ObjectsByID {
 		if door, ok := obj.(*objects.Door); ok {
 			if tex, ok := mapData.TileTextures["door"]; ok {
 				door.Texture = tex
+			}
+			if tex, ok := mapData.TexturesByID["door_closed"]; ok {
+				door.Texture = tex
+			}
+			if tex, ok := mapData.TexturesByID["door_open"]; ok {
+				door.OpenTexture = tex
 			}
 		}
 		if seat, ok := obj.(*objects.Seat); ok {
