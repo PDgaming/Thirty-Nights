@@ -119,7 +119,7 @@ function parseTiles(value: unknown): TileDefs {
 			solid: rawTile.solid,
 			visual: { 
 				color: readString(rawTile.visual.color, `${path}.visual.color`), 
-				texture: ''
+				texture: String(rawTile.visual.texture || '')
 			}
 		};
 		tiles[id] = tile;
