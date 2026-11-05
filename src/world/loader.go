@@ -184,7 +184,7 @@ func (m *MapData) LoadTileTextures() error {
 // MapData.assetTextures for later use. Errors for missing files are logged
 // but do not prevent map loading.
 func (m *MapData) LoadAssets() error {
-	if m.AssetsByID == nil || len(m.AssetsByID) == 0 {
+	if m.AssetsByID == nil {
 		return nil
 	}
 
