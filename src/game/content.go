@@ -8,6 +8,39 @@ import (
 	"thirty.nights/src/world"
 )
 
+func CheckMapDependencies(catalog world.Catalog) error {
+	for id, m := range catalog {
+		for i, dep := range m.Maps {
+			if _, ok := catalog[dep]; !ok {
+				return fmt.Errorf("map %q: dependency maps[%d] references unknown map %q", id, i, dep)
+			}
+		}
+	}
+	return nil
+}
+
+func CheckExitTransitions(catalog world.Catalog) error {
+	for mapID, m := range catalog {
+		for _, object := range m.Objects {
+			if object.Type != "exit" {
+				continue
+			}
+			raw, ok := object.Properties["nextLevel"]
+			if !ok || raw == nil {
+				return fmt.Errorf("map %q: exit object %q missing nextLevel", mapID, object.ID)
+			}
+			nextLevel, ok := raw.(string)
+			if !ok || nextLevel == "" {
+				return fmt.Errorf("map %q: exit object %q has invalid nextLevel", mapID, object.ID)
+			}
+			if _, ok := catalog[nextLevel]; !ok {
+				return fmt.Errorf("map %q: exit object %q references unknown map %q", mapID, object.ID, nextLevel)
+			}
+		}
+	}
+	return nil
+}
+
 func CheckDialogues(m *world.MapData, catalog dialogue.Catalog) error {
 	for _, object := range m.Objects {
 		obj, ok := m.ObjectsByID[object.ID]

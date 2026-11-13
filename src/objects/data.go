@@ -44,3 +44,9 @@ type Trigger struct {
 	dialogueID string
 	cutsceneID string
 }
+
+type Exit struct {
+	ID        string
+	Bounds    rl.Rectangle
+	nextLevel string
+}

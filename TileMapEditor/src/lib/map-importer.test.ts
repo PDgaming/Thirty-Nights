@@ -275,4 +275,18 @@ describe('parseMapJson', () => {
 		);
 		expect(parsed.objects[0].properties).toEqual({});
 	});
+
+	it('parses and round-trips map dependency list', () => {
+		const parsed = parseMapData(baseRaw({ maps: ['bar', 'deck_02'] }));
+		expect(parsed.maps).toEqual(['bar', 'deck_02']);
+		const source = createEmptyMap({ width: 3, height: 2, id: 'deck-01', name: 'Deck One' });
+		source.maps = ['bar', 'deck_02'];
+		expect(parseMapJson(mapToJson(source)).maps).toEqual(['bar', 'deck_02']);
+	});
+
+	it('omits empty or missing maps dependencies', () => {
+		expect(parseMapData(baseRaw()).maps).toBeUndefined();
+		expect(parseMapData(baseRaw({ maps: [] })).maps).toBeUndefined();
+	});
+
 });

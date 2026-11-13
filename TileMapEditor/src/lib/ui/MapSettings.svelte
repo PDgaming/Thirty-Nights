@@ -9,13 +9,15 @@
 	let widthDraft = $state('');
 	let heightDraft = $state('');
 	let startCutsceneDraft = $state('');
+	let mapsDraft = $state('');
 
 	function readMapDimensions(epoch: number) {
 		return untrack(() => ({
 			epoch,
 			width: editor.map.width,
 			height: editor.map.height,
-			startCutscene: editor.map.start_cutscene ?? ''
+			startCutscene: editor.map.start_cutscene ?? '',
+			maps: (editor.map.maps ?? []).join(', ')
 		}));
 	}
 
@@ -25,6 +27,7 @@
 		widthDraft = String(dimensions.width);
 		heightDraft = String(dimensions.height);
 		startCutsceneDraft = dimensions.startCutscene;
+		mapsDraft = dimensions.maps;
 	});
 
 	const spawnValid = $derived(
@@ -93,6 +96,11 @@
 	function commitStartCutscene() {
 		editor.setStartCutscene(startCutsceneDraft);
 		startCutsceneDraft = editor.map.start_cutscene ?? '';
+	}
+
+	function commitMaps() {
+		editor.setMaps(mapsDraft);
+		mapsDraft = (editor.map.maps ?? []).join(', ');
 	}
 
 	function enterBlur(event: KeyboardEvent) {
@@ -205,5 +213,20 @@
 			onchange={commitStartCutscene}
 			onkeydown={enterBlur}
 		/>
+	</label>
+
+	<label>
+		<span class="field-label">Dependent maps</span>
+		<input
+			class="field mono"
+			placeholder="map_a, map_b"
+			value={mapsDraft}
+			oninput={(event) => (mapsDraft = event.currentTarget.value)}
+			onchange={commitMaps}
+			onkeydown={enterBlur}
+		/>
+		<p class="mt-1 text-[10px] leading-4" style="color: var(--text-faint)">
+			Comma-separated map IDs that must exist at startup.
+		</p>
 	</label>
 </div>

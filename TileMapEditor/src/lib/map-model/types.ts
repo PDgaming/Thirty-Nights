@@ -72,6 +72,8 @@ export interface GameMap {
 	spawn: Spawn;
 	/** Optional cutscene ID to play when the level is entered. */
 	start_cutscene?: string;
+	/** Optional dependency map IDs that must exist at startup. */
+	maps?: string[];
 }
 
 export interface CellPosition {

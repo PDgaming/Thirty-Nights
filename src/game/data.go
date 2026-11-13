@@ -36,6 +36,11 @@ type Game struct {
 	pendingDialogue string
 	pendingCutscene string
 
+	transitionPhase   TransitionPhase
+	transitionAlpha   float32
+	transitionElapsed float32
+	transitionTarget  string
+
 	Debug bool
 }
 

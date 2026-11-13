@@ -63,3 +63,85 @@ func TestCheckCutscenesTreatsEmptyAsNoTrigger(t *testing.T) {
 		t.Fatalf("CheckCutscenes() error = %v, want nil", err)
 	}
 }
+
+func TestCheckMapDependenciesAcceptsKnownDependencies(t *testing.T) {
+	catalog := world.Catalog{
+		"a": {ID: "a", Maps: []string{"b"}},
+		"b": {ID: "b", Maps: []string{}},
+	}
+	if err := CheckMapDependencies(catalog); err != nil {
+		t.Fatalf("CheckMapDependencies() error = %v", err)
+	}
+}
+
+func TestCheckMapDependenciesRejectsUnknownDependency(t *testing.T) {
+	catalog := world.Catalog{
+		"a": {ID: "a", Maps: []string{"missing"}},
+	}
+	err := CheckMapDependencies(catalog)
+	if err == nil || !strings.Contains(err.Error(), `map "a"`) || !strings.Contains(err.Error(), "missing") {
+		t.Fatalf("err = %v, want map/context and missing id", err)
+	}
+}
+
+func TestCheckExitTransitionsAcceptsKnownTarget(t *testing.T) {
+	catalog := world.Catalog{
+		"a": {
+			ID: "a",
+			Objects: []world.ObjectData{{
+				ID: "exit1", Type: "exit", Layer: "floor", X: 0, Y: 0,
+				Properties: map[string]any{"nextLevel": "b"},
+			}},
+		},
+		"b": {ID: "b"},
+	}
+	if err := CheckExitTransitions(catalog); err != nil {
+		t.Fatalf("CheckExitTransitions() error = %v", err)
+	}
+}
+
+func TestCheckExitTransitionsRejectsUnknownTarget(t *testing.T) {
+	catalog := world.Catalog{
+		"a": {
+			ID: "a",
+			Objects: []world.ObjectData{{
+				ID: "exit1", Type: "exit", Layer: "floor", X: 0, Y: 0,
+				Properties: map[string]any{"nextLevel": "missing"},
+			}},
+		},
+	}
+	err := CheckExitTransitions(catalog)
+	if err == nil || !strings.Contains(err.Error(), `exit object "exit1"`) || !strings.Contains(err.Error(), "missing") {
+		t.Fatalf("err = %v, want exit context and missing target", err)
+	}
+}
+
+func TestCheckExitTransitionsRejectsMissingOrInvalidNextLevel(t *testing.T) {
+	tests := []struct {
+		name  string
+		props map[string]any
+	}{
+		{name: "missing", props: map[string]any{}},
+		{name: "nil", props: map[string]any{"nextLevel": nil}},
+		{name: "empty", props: map[string]any{"nextLevel": ""}},
+		{name: "wrong type", props: map[string]any{"nextLevel": 2}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			catalog := world.Catalog{
+				"a": {
+					ID: "a",
+					Objects: []world.ObjectData{{
+						ID: "exit1", Type: "exit", Layer: "floor", X: 0, Y: 0,
+						Properties: tt.props,
+					}},
+				},
+				"b": {ID: "b"},
+			}
+			err := CheckExitTransitions(catalog)
+			if err == nil {
+				t.Fatal("expected error")
+			}
+		})
+	}
+}

@@ -113,6 +113,7 @@ type MapData struct {
 	Objects     []ObjectData          `json:"objects"`
 	ObjectsByID map[string]ObjectType `json:"-"`
 
-	Spawn         Spawn  `json:"spawn"`
-	StartCutscene string `json:"start_cutscene,omitempty"`
+	Spawn         Spawn    `json:"spawn"`
+	StartCutscene string   `json:"start_cutscene,omitempty"`
+	Maps          []string `json:"maps,omitempty"`
 }

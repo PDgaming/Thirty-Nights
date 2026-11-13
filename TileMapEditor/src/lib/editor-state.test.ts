@@ -718,7 +718,7 @@ describe('npc authoring', () => {
 	it('starts new maps with the npc palette entry and its authoring defaults', () => {
 		const editor = new EditorState();
 
-		expect(editor.objectTypes.map((type) => type.id)).toEqual(['door', 'npc', 'trigger', 'seat']);
+		expect(editor.objectTypes.map((type) => type.id)).toEqual(['door', 'npc', 'trigger', 'seat', 'exit']);
 		expect(editor.objectTypes.find((type) => type.id === 'npc')?.attributes).toEqual([
 			{ name: 'name', type: 'string' },
 			{ name: 'dialogueId', type: 'string' },
@@ -727,6 +727,9 @@ describe('npc authoring', () => {
 			{ name: 'solid', type: 'boolean', default: true },
 			{ name: 'interactionPadding', type: 'number', default: 6 },
 			{ name: 'cutsceneId', type: 'string', default: '' }
+		]);
+		expect(editor.objectTypes.find((type) => type.id === 'exit')?.attributes).toEqual([
+			{ name: 'nextLevel', type: 'string', default: '' }
 		]);
 	});
 

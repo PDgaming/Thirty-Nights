@@ -93,6 +93,7 @@ export function parseMapData(raw: unknown): GameMap {
 		typeof raw.start_cutscene === 'string' && raw.start_cutscene !== ''
 			? raw.start_cutscene
 			: undefined;
+	const maps = parseMaps(raw.maps);
 
 	const map: GameMap = {
 		format_version: formatVersion,
@@ -107,6 +108,7 @@ export function parseMapData(raw: unknown): GameMap {
 		spawn
 	};
 	if (startCutscene) map.start_cutscene = startCutscene;
+	if (maps.length > 0) map.maps = maps;
 	return map;
 }
 
@@ -214,4 +216,14 @@ function parseSpawn(value: unknown): Spawn {
 		x: readInteger(value.x, 'spawn.x'),
 		y: readInteger(value.y, 'spawn.y')
 	};
+}
+
+function parseMaps(value: unknown): string[] {
+	if (value === undefined) return [];
+	if (!Array.isArray(value)) fail('maps', 'must be an array');
+	return value.map((entry, index) => {
+		const id = readString(entry, `maps[${index}]`);
+		if (id.trim() === '') fail(`maps[${index}]`, 'must not be empty');
+		return id;
+	});
 }

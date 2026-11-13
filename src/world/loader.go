@@ -83,6 +83,10 @@ func LoadMap(path string) (*MapData, error) {
 		return nil, fmt.Errorf("world: invalid map data in %s: %w", path, err)
 	}
 
+	if mapData.Maps == nil {
+		mapData.Maps = []string{}
+	}
+
 	mapData.BuildLayerIndex()
 	mapData.ObjectsByID = make(map[string]ObjectType)
 	if err := mapData.BuildObjects(); err != nil {
@@ -143,6 +147,12 @@ func (m *MapData) BuildObjects() error {
 				return fmt.Errorf("failed to create npc %q: %w", object.ID, err)
 			}
 			m.ObjectsByID[object.ID] = n
+		case "exit":
+			exit, err := objects.NewExit(object.ID, object.X*m.TileSize, object.Y*m.TileSize, width, height, object.Properties)
+			if err != nil {
+				return fmt.Errorf("failed to create exit %q: %w", object.ID, err)
+			}
+			m.ObjectsByID[object.ID] = exit
 		default:
 			return fmt.Errorf("unknown object type: %s", object.Type)
 		}

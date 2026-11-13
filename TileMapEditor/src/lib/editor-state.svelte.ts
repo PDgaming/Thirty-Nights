@@ -179,6 +179,11 @@ const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [
 			{ name: 'occupied', type: 'boolean', default: false },
 			{ name: 'cutsceneId', type: 'string', default: '' }
 		]
+	},
+	{
+		id: 'exit',
+		color: '#22c55e',
+		attributes: [{ name: 'nextLevel', type: 'string', default: '' }]
 	}
 ];
 const OBJECT_MARKER_COLORS = ['#f472b6', '#60a5fa', '#4ade80', '#c084fc', '#facc15', '#fb923c'];
@@ -909,6 +914,19 @@ export class EditorState {
 			delete this.map.start_cutscene;
 		} else {
 			this.map.start_cutscene = trimmed;
+		}
+		this.commit();
+	}
+
+	setMaps(value: string): void {
+		const maps = value
+			.split(/[,\n]/)
+			.map((entry: string) => entry.trim())
+			.filter((entry: string) => entry !== '');
+		if (maps.length === 0) {
+			delete this.map.maps;
+		} else {
+			this.map.maps = maps;
 		}
 		this.commit();
 	}

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"thirty.nights/src/objects"
 )
 
 func assertRect(t *testing.T, name string, got, want rl.Rectangle) {
@@ -174,5 +175,122 @@ func TestLoadMapRejectsObjectFootprintOverflow(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "footprint width") {
 		t.Fatalf("LoadMap() error = %q, want it to contain %q", err, "footprint width")
+	}
+}
+
+func writeTestMapWithFields(t *testing.T, extra map[string]any) string {
+	t.Helper()
+
+	grid := make([][]string, 2)
+	for y := range grid {
+		grid[y] = make([]string, 2)
+	}
+
+	m := map[string]any{
+		"format_version": 1,
+		"id":             "test_map",
+		"name":           "Test Map",
+		"tile_size":      16,
+		"width":          2,
+		"height":         2,
+		"tiles": map[string]any{
+			"floor": map[string]any{"solid": false, "visual": map[string]any{"color": "#000000"}},
+			"door":  map[string]any{"solid": true, "visual": map[string]any{"color": "#9a7047"}},
+			"seat":  map[string]any{"solid": true, "visual": map[string]any{"color": "#60a5fa"}},
+		},
+		"layers": []any{
+			map[string]any{
+				"id":        "floor",
+				"type":      "tile",
+				"z_index":   0,
+				"collision": "none",
+				"grid":      grid,
+			},
+		},
+		"objects": []any{},
+		"spawn":   map[string]any{"x": 0, "y": 0},
+	}
+	for k, v := range extra {
+		m[k] = v
+	}
+
+	data, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal test map: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "map.json")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatalf("write test map: %v", err)
+	}
+	return path
+}
+
+func TestLoadMapNormalizesMissingMapsDependencies(t *testing.T) {
+	m, err := LoadMap(writeTestMapWithFields(t, nil))
+	if err != nil {
+		t.Fatalf("LoadMap() error = %v", err)
+	}
+	if m.Maps == nil {
+		t.Fatal("Maps = nil, want empty slice")
+	}
+	if len(m.Maps) != 0 {
+		t.Fatalf("len(Maps) = %d, want 0", len(m.Maps))
+	}
+}
+
+func TestLoadMapPreservesMapsDependencies(t *testing.T) {
+	m, err := LoadMap(writeTestMapWithFields(t, map[string]any{
+		"maps": []any{"bar", "terminal_office"},
+	}))
+	if err != nil {
+		t.Fatalf("LoadMap() error = %v", err)
+	}
+	if len(m.Maps) != 2 || m.Maps[0] != "bar" || m.Maps[1] != "terminal_office" {
+		t.Fatalf("Maps = %#v, want [bar terminal_office]", m.Maps)
+	}
+}
+
+func TestLoadMapBuildsExitObject(t *testing.T) {
+	grid := make([][]string, 2)
+	for y := range grid {
+		grid[y] = make([]string, 2)
+	}
+	m := MapData{
+		FormatVersion: 1,
+		ID:            "test_map",
+		Name:          "Test Map",
+		TileSize:      16,
+		Width:         2,
+		Height:        2,
+		Tiles:         map[string]TileDef{"floor": {Visual: VisualData{Color: "#000000"}}},
+		Layers:        []LayerData{{ID: "floor", Type: "tile", ZIndex: 0, CollisionName: "none", Grid: grid}},
+		Objects: []ObjectData{{
+			ID: "exit1", Type: "exit", Layer: "floor", X: 1, Y: 0, Width: 1, Height: 1,
+			Properties: map[string]any{"nextLevel": "bar"},
+		}},
+		Spawn: Spawn{X: 0, Y: 0},
+	}
+	data, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "map.json")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	loaded, err := LoadMap(path)
+	if err != nil {
+		t.Fatalf("LoadMap() error = %v", err)
+	}
+	obj, ok := loaded.ObjectsByID["exit1"]
+	if !ok {
+		t.Fatal("exit1 not built")
+	}
+	exit, ok := obj.(*objects.Exit)
+	if !ok {
+		t.Fatalf("exit1 type = %T, want *objects.Exit", obj)
+	}
+	if exit.NextLevel() != "bar" {
+		t.Fatalf("NextLevel() = %q, want bar", exit.NextLevel())
 	}
 }

@@ -167,4 +167,19 @@ describe('normalizeFilename', () => {
 		expect(normalizeFilename('  ', 'map.json')).toBe('map.json');
 		expect(normalizeFilename('deck:1/2', 'map')).toBe('deck-1-2.json');
 	});
+
+	it('serializes maps dependencies when present', () => {
+		const source = map();
+		source.maps = ['bar', 'deck_02'];
+		expect(serializeMap(source).maps).toEqual(['bar', 'deck_02']);
+		expect(JSON.parse(mapToJson(source)).maps).toEqual(['bar', 'deck_02']);
+	});
+
+	it('omits maps dependencies when empty or missing', () => {
+		const source = map();
+		expect(serializeMap(source).maps).toBeUndefined();
+		source.maps = [];
+		expect(serializeMap(source).maps).toBeUndefined();
+	});
+
 });

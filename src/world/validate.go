@@ -3,6 +3,7 @@ package world
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var hexColorRegex = regexp.MustCompile(`^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$`)
@@ -52,6 +53,11 @@ func ValidateMapProperties(m MapData) error {
 	}
 	if len(m.Layers) == 0 {
 		return fmt.Errorf("map must have at least one layer")
+	}
+	for i, id := range m.Maps {
+		if strings.TrimSpace(id) == "" {
+			return fmt.Errorf("map dependency at index %d must be a non-empty map id", i)
+		}
 	}
 	return nil
 }

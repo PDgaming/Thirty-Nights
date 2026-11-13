@@ -119,6 +119,11 @@ export const DEFAULT_MAP_SCHEMA: MapSchema = {
 		start_cutscene: {
 			type: 'string',
 			description: 'Optional cutscene ID to play when the level is entered.'
+		},
+		maps: {
+			type: 'array',
+			description: 'Optional map dependency IDs that must exist at startup.',
+			items: { type: 'string' }
 		}
 	},
 	additionalProperties: true

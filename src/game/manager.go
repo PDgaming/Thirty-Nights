@@ -30,6 +30,11 @@ func (g *Game) Step(dt float32, in Input) {
 		g.Cam.UpdateViewport()
 	}
 
+	// Drive fade/load state machine every tick.
+	if g.TransitionActive() || g.transitionPhase == TransitionLoad {
+		g.updateTransition(dt)
+	}
+
 	switch g.mode {
 	case ModePlaying:
 		g.updatePlaying(dt, in)
@@ -41,6 +46,10 @@ func (g *Game) Step(dt float32, in Input) {
 }
 
 func (g *Game) updatePlaying(dt float32, in Input) {
+	if g.TransitionActive() || g.transitionPhase == TransitionLoad {
+		return
+	}
+
 	if g.pendingCutscene != "" {
 		id := g.pendingCutscene
 		g.pendingCutscene = ""
@@ -60,6 +69,11 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 
 	g.Player.Update(dt, g.Map)
 	g.Player.Animator.Update(dt)
+
+	g.checkExitTransitions()
+	if g.TransitionActive() || g.transitionPhase == TransitionLoad {
+		return
+	}
 
 	g.ActiveInteractable = g.Map.FindInteractable(g.Player.Rect(), g.Player.Center(), g.Player.Facing)
 
@@ -105,6 +119,23 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 	mapWidthPixels := g.Map.Width * g.Map.TileSize
 	mapHeightPixels := g.Map.Height * g.Map.TileSize
 	g.Cam.ClampToBounds(mapWidthPixels, mapHeightPixels)
+}
+
+func (g *Game) checkExitTransitions() {
+	if g.TransitionActive() || g.Player == nil || g.Map == nil {
+		return
+	}
+	playerRect := g.Player.Rect()
+	for _, obj := range g.Map.ObjectsByID {
+		exit, ok := obj.(*objects.Exit)
+		if !ok || exit.NextLevel() == "" {
+			continue
+		}
+		if rl.CheckCollisionRecs(playerRect, exit.CollisionRect()) {
+			g.RequestLevelTransition(exit.NextLevel())
+			return
+		}
+	}
 }
 
 func (g *Game) updateDialogue(dt float32, in Input) {
@@ -248,6 +279,12 @@ func (g *Game) LoadLevels(dir string) error {
 		return fmt.Errorf("failed to load levels: %w", err)
 	}
 	g.Levels = levels
+	if err := CheckMapDependencies(g.Levels); err != nil {
+		return fmt.Errorf("failed to validate level dependencies: %w", err)
+	}
+	if err := CheckExitTransitions(g.Levels); err != nil {
+		return fmt.Errorf("failed to validate exit transitions: %w", err)
+	}
 	return nil
 }
 
@@ -255,7 +292,7 @@ func (g *Game) LoadLevel(id string) (err error) {
 	if g.Levels == nil {
 		return fmt.Errorf("no levels loaded")
 	}
-	if id == g.currentLevel {
+	if !g.TransitionActive() && id == g.currentLevel {
 		return nil
 	}
 
@@ -317,13 +354,15 @@ func (g *Game) LoadLevel(id string) (err error) {
 		Y: float32(g.Map.Height*g.Map.TileSize) / 2,
 	}
 
-	// Level-start cutscene trigger.
+	// Reset transient runtime state for the new level.
 	g.Dialogue = nil
 	g.Cutscene = nil
 	g.pendingDialogue = ""
 	g.pendingCutscene = ""
 	g.mode = ModePlaying
-	if mapData.StartCutscene != "" {
+
+	// During transitions start destination cutscene after fade-in.
+	if !g.TransitionActive() && mapData.StartCutscene != "" {
 		g.startCutscene(mapData.StartCutscene)
 	}
 	return nil

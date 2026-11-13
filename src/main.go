@@ -63,6 +63,7 @@ func main() {
 
 		rl.EndMode2D()
 		g.DrawUI()
+		g.DrawTransitionOverlay()
 		rl.EndDrawing()
 	}
 }

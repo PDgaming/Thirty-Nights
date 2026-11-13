@@ -6940,10 +6940,25 @@
         "interactionPadding": 1,
         "cutsceneId": ""
       }
+    },
+    {
+      "id": "exit_to_bar",
+      "type": "exit",
+      "layer": "floor",
+      "x": 0,
+      "y": 2,
+      "width": 1,
+      "height": 1,
+      "properties": {
+        "nextLevel": "bar"
+      }
     }
   ],
   "spawn": {
     "x": 45,
     "y": 27
-  }
+  },
+  "maps": [
+    "bar"
+  ]
 }

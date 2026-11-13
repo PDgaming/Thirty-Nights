@@ -302,3 +302,51 @@ func TestSeatPrompts(t *testing.T) {
 		t.Fatalf("PromptFor(overlapping player) = %q, want %q", got, "E - Leave")
 	}
 }
+
+func TestExitRequiresValidNextLevel(t *testing.T) {
+	tests := []struct {
+		name       string
+		properties map[string]any
+		contains   string
+	}{
+		{name: "missing", properties: map[string]any{}, contains: "no \"nextLevel\""},
+		{name: "nil", properties: map[string]any{"nextLevel": nil}, contains: "no \"nextLevel\""},
+		{name: "empty", properties: map[string]any{"nextLevel": ""}, contains: "must be a non-empty string"},
+		{name: "wrong type", properties: map[string]any{"nextLevel": 3}, contains: "must be a non-empty string"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewExit("exit", 0, 0, 16, 16, tt.properties)
+			if err == nil {
+				t.Fatal("NewExit() error = nil, want error")
+			}
+			if !strings.Contains(err.Error(), tt.contains) {
+				t.Fatalf("NewExit() error = %q, want it to contain %q", err, tt.contains)
+			}
+		})
+	}
+}
+
+func TestExitStoresNextLevelAndGeometry(t *testing.T) {
+	exit, err := NewExit("exit", 10, 20, 32, 16, map[string]any{"nextLevel": "bar"})
+	if err != nil {
+		t.Fatalf("NewExit() error = %v", err)
+	}
+	if exit.NextLevel() != "bar" {
+		t.Fatalf("NextLevel() = %q, want %q", exit.NextLevel(), "bar")
+	}
+	want := rl.Rectangle{X: 10, Y: 20, Width: 32, Height: 16}
+	assertRectangle(t, "Bounds", exit.Bounds, want)
+	assertRectangle(t, "CollisionRect()", exit.CollisionRect(), want)
+	if exit.Solid() {
+		t.Fatal("exit should not be solid")
+	}
+}
+
+func TestExitGeometryClampsNonPositiveDimensions(t *testing.T) {
+	exit, err := NewExit("exit", 0, 0, 0, -2, map[string]any{"nextLevel": "bar"})
+	if err != nil {
+		t.Fatalf("NewExit() error = %v", err)
+	}
+	assertRectangle(t, "Bounds", exit.Bounds, rl.Rectangle{X: 0, Y: 0, Width: 1, Height: 1})
+}

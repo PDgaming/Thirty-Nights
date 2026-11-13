@@ -45,6 +45,7 @@ export function serializeMap(map: GameMap): GameMap {
 		spawn: { x: map.spawn.x, y: map.spawn.y }
 	};
 	if (map.start_cutscene) serialized.start_cutscene = map.start_cutscene;
+	if (map.maps && map.maps.length > 0) serialized.maps = [...map.maps];
 	return serialized;
 }
 
