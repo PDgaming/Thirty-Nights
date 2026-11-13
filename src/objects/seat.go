@@ -16,8 +16,13 @@ func NewSeat(id string, x, y, width, height int, color rl.Color, properties map[
 	if occupied, ok := properties["occupied"].(bool); ok {
 		s.Occupied = occupied
 	}
+	s.cutsceneID = cutsceneIDFromProperties(properties)
 
 	return s
+}
+
+func (s *Seat) CutsceneID() string {
+	return s.cutsceneID
 }
 
 func (s *Seat) Update(dt float32) {}

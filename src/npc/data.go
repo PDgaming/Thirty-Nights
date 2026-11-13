@@ -12,6 +12,7 @@ type NPC struct {
 	Facing rl.Vector2
 
 	dialogueID         string
+	cutsceneID         string
 	solid              bool
 	interactionPadding int
 }

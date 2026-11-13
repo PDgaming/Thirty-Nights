@@ -6,6 +6,7 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"thirty.nights/src/camera"
+	"thirty.nights/src/cutscene"
 	"thirty.nights/src/dialogue"
 	"thirty.nights/src/objects"
 	"thirty.nights/src/player"
@@ -34,10 +35,18 @@ func (g *Game) Step(dt float32, in Input) {
 		g.updatePlaying(dt, in)
 	case ModeDialogue:
 		g.updateDialogue(dt, in)
+	case ModeCutscene:
+		g.updateCutscene(dt, in)
 	}
 }
 
 func (g *Game) updatePlaying(dt float32, in Input) {
+	if g.pendingCutscene != "" {
+		id := g.pendingCutscene
+		g.pendingCutscene = ""
+		g.startCutscene(id)
+		return
+	}
 	if g.pendingDialogue != "" {
 		id := g.pendingDialogue
 		g.pendingDialogue = ""
@@ -63,9 +72,12 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 		if canActivate {
 			g.ActiveInteractable.Interact()
 
+			// Existing dialogue interactables take precedence for this interaction.
 			if talker, ok := g.ActiveInteractable.(world.DialogueInteractable); ok {
-				g.RequestDialogue(talker.DialogueID())
-				return
+				if id := talker.DialogueID(); id != "" {
+					g.RequestDialogue(id)
+					return
+				}
 			}
 			if seat, ok := g.ActiveInteractable.(*objects.Seat); ok {
 				switch {
@@ -73,6 +85,13 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 					g.Player.Sit(seat.Bounds)
 				case !seat.Occupied && g.Player.Sitting:
 					g.Player.Stand()
+				}
+			}
+			// Post-interaction cutscene trigger runs after interaction side effects.
+			if cs, ok := g.ActiveInteractable.(world.CutsceneInteractable); ok {
+				if id := cs.CutsceneID(); id != "" {
+					g.RequestCutscene(id)
+					return
 				}
 			}
 		}
@@ -89,6 +108,10 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 }
 
 func (g *Game) updateDialogue(dt float32, in Input) {
+	if g.Dialogue == nil {
+		g.mode = ModePlaying
+		return
+	}
 	g.Dialogue.Update(dt)
 
 	if in.Interact {
@@ -97,6 +120,23 @@ func (g *Game) updateDialogue(dt float32, in Input) {
 
 	if g.Dialogue.Snapshot().Finished {
 		g.finishDialogue()
+	}
+}
+
+func (g *Game) updateCutscene(dt float32, in Input) {
+	if g.Cutscene == nil {
+		g.mode = ModePlaying
+		return
+	}
+	g.Cutscene.Update(dt, g.Dialogues)
+	if in.Interact {
+		g.Cutscene.Advance(g.Dialogues)
+	}
+	if g.Cutscene.Err() != nil {
+		log.Printf("cutscene: %v", g.Cutscene.Err())
+	}
+	if g.Cutscene.Finished() {
+		g.finishCutscene()
 	}
 }
 
@@ -113,11 +153,29 @@ func (g *Game) startDialogue(id string) {
 	g.ActiveInteractable = nil
 }
 
+func (g *Game) startCutscene(id string) {
+	def, ok := g.Cutscenes.Get(id)
+	if !ok {
+		log.Printf("cutscene: unknown id %q", id)
+		return
+	}
+
+	g.Cutscene = cutscene.NewSession(def)
+	g.mode = ModeCutscene
+	g.ActiveInteractable = nil
+}
+
 func (g *Game) finishDialogue() {
 	g.Dialogue = nil
 	g.mode = g.dialogueReturn
 	g.ActiveInteractable = nil
+}
 
+func (g *Game) finishCutscene() {
+	g.Cutscene = nil
+	g.mode = ModePlaying
+	g.ActiveInteractable = nil
+	// Let updatePlaying process any queued triggers on the next tick.
 }
 
 func (g *Game) Draw() {
@@ -150,8 +208,14 @@ func (g *Game) DrawUI() {
 	}
 
 	if g.mode == ModeDialogue && g.Dialogue != nil {
-		g.drawDialogue()
+		g.drawDialogueSession(g.Dialogue)
 		return
+	}
+	if g.mode == ModeCutscene && g.Cutscene != nil {
+		if dlg := g.Cutscene.Dialogue(); dlg != nil {
+			g.drawDialogueSession(dlg)
+			return
+		}
 	}
 
 	if g.ActiveInteractable != nil {
@@ -159,18 +223,21 @@ func (g *Game) DrawUI() {
 		if aware, ok := g.ActiveInteractable.(world.PlayerAwareInteractable); ok {
 			prompt = aware.PromptFor(g.Player.Rect())
 		}
+		if prompt == "" {
+			return
+		}
 		anchor := g.ActiveInteractable.PromptAnchor()
 		anchor = rl.GetWorldToScreen2D(anchor, g.Cam.View)
 		rl.DrawText(prompt, int32(anchor.X), int32(anchor.Y), 20, rl.White)
 	}
 }
 
-func (g *Game) drawDialogue() {
-	snap := g.Dialogue.Snapshot()
+func (g *Game) drawDialogueSession(s *dialogue.Session) {
+	snap := s.Snapshot()
 	l := dialogue.Compute(float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()), ui.Measure, snap.Speaker, snap.Text)
 
-	g.Dialogue.SetPages(l.Ranges())
-	snap = g.Dialogue.Snapshot()
+	s.SetPages(l.Ranges())
+	snap = s.Snapshot()
 
 	ui.DrawDialogue(snap, l)
 }
@@ -205,9 +272,12 @@ func (g *Game) LoadLevel(id string) (err error) {
 		return fmt.Errorf("invalid Y spawn point in level %q: %+v", id, mapData.Spawn)
 	}
 
-	// check for valid dialogues
+	// check for valid dialogues and cutscenes
 	if err := CheckDialogues(mapData, g.Dialogues); err != nil {
 		return fmt.Errorf("invalid dialogue references in level %q: %w", id, err)
+	}
+	if err := CheckCutscenes(mapData, g.Cutscenes); err != nil {
+		return fmt.Errorf("invalid cutscene references in level %q: %w", id, err)
 	}
 
 	if err := mapData.LoadTileTextures(); err != nil {
@@ -246,6 +316,16 @@ func (g *Game) LoadLevel(id string) (err error) {
 		X: float32(g.Map.Width*g.Map.TileSize) / 2,
 		Y: float32(g.Map.Height*g.Map.TileSize) / 2,
 	}
+
+	// Level-start cutscene trigger.
+	g.Dialogue = nil
+	g.Cutscene = nil
+	g.pendingDialogue = ""
+	g.pendingCutscene = ""
+	g.mode = ModePlaying
+	if mapData.StartCutscene != "" {
+		g.startCutscene(mapData.StartCutscene)
+	}
 	return nil
 }
 
@@ -258,12 +338,25 @@ func (g *Game) LoadDialogues(dir string) error {
 	return nil
 }
 
+func (g *Game) LoadCutscenes(dir string) error {
+	catalog, err := cutscene.LoadDir(dir)
+	if err != nil {
+		return fmt.Errorf("failed to load cutscenes: %w", err)
+	}
+	g.Cutscenes = catalog
+	return nil
+}
+
 func (g *Game) Mode() Mode {
 	return g.mode
 }
 
 func (g *Game) RequestDialogue(id string) {
 	g.pendingDialogue = id
+}
+
+func (g *Game) RequestCutscene(id string) {
+	g.pendingCutscene = id
 }
 
 // Helper Functions
@@ -273,6 +366,8 @@ func (m Mode) String() string {
 		return "Playing"
 	case ModeDialogue:
 		return "Dialogue"
+	case ModeCutscene:
+		return "Cutscene"
 	}
 	return "Unknown"
 }

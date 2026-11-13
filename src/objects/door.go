@@ -20,8 +20,13 @@ func NewDoor(id string, x, y, width, height int, color rl.Color, properties map[
 	if locked, ok := properties["locked"].(bool); ok {
 		d.Locked = locked
 	}
+	d.cutsceneID = cutsceneIDFromProperties(properties)
 
 	return d
+}
+
+func (d *Door) CutsceneID() string {
+	return d.cutsceneID
 }
 
 func (d *Door) Update(dt float32) {

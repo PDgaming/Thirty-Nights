@@ -22,6 +22,8 @@ type Door struct {
 	OpenTexture  rl.Texture2D
 	Open         bool
 	Locked       bool
+
+	cutsceneID string
 }
 
 type Seat struct {
@@ -30,6 +32,8 @@ type Seat struct {
 	Color    rl.Color
 	Texture  rl.Texture2D
 	Occupied bool
+
+	cutsceneID string
 }
 
 type Trigger struct {
@@ -38,4 +42,5 @@ type Trigger struct {
 	PromptText string
 
 	dialogueID string
+	cutsceneID string
 }

@@ -64,6 +64,7 @@ func NewNPC(id string, x, y, width, height, tileSize int, color rl.Color, proper
 	if ip, ok := properties["interactionPadding"].(float64); ok {
 		n.interactionPadding = int(ip) * tileSize
 	}
+	n.cutsceneID = cutsceneIDFromProperties(properties)
 
 	return n, nil
 }
@@ -167,4 +168,21 @@ func (n *NPC) InteractionRect() rl.Rectangle {
 
 func (n *NPC) DialogueID() string {
 	return n.dialogueID
+}
+
+
+func cutsceneIDFromProperties(properties map[string]any) string {
+	raw, ok := properties["cutsceneId"]
+	if !ok || raw == nil {
+		return ""
+	}
+	id, ok := raw.(string)
+	if !ok {
+		return ""
+	}
+	return id
+}
+
+func (n *NPC) CutsceneID() string {
+	return n.cutsceneID
 }

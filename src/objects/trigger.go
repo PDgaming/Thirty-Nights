@@ -38,12 +38,17 @@ func NewTrigger(id string, x, y, width, height int, properties map[string]any) (
 	if prompt, ok := properties["prompt"].(string); ok && prompt != "" {
 		t.PromptText = prompt
 	}
+	t.cutsceneID = cutsceneIDFromProperties(properties)
 
 	return t, nil
 }
 
 func (t *Trigger) DialogueID() string {
 	return t.dialogueID
+}
+
+func (t *Trigger) CutsceneID() string {
+	return t.cutsceneID
 }
 
 func (t *Trigger) Update(dt float32) {

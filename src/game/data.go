@@ -2,6 +2,7 @@ package game
 
 import (
 	"thirty.nights/src/camera"
+	"thirty.nights/src/cutscene"
 	"thirty.nights/src/dialogue"
 	"thirty.nights/src/player"
 	"thirty.nights/src/world"
@@ -12,6 +13,7 @@ type Mode int
 const (
 	ModePlaying Mode = iota
 	ModeDialogue
+	ModeCutscene
 )
 
 type Game struct {
@@ -23,13 +25,16 @@ type Game struct {
 	Cam    *camera.Controller
 
 	Dialogues dialogue.Catalog
+	Cutscenes cutscene.Catalog
 	Dialogue  *dialogue.Session
+	Cutscene  *cutscene.Session
 
 	ActiveInteractable world.Interactable
 
 	mode            Mode
 	dialogueReturn  Mode
 	pendingDialogue string
+	pendingCutscene string
 
 	Debug bool
 }

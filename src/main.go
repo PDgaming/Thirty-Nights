@@ -12,6 +12,7 @@ import (
 const (
 	mapDir      = "asset/maps"
 	dialogueDir = "asset/dialogues"
+	cutsceneDir = "asset/cutscenes"
 	level       = "terminal_office"
 	debug       = false
 )
@@ -27,6 +28,9 @@ func main() {
 		log.Fatalf("error: %+v", err)
 	}
 	if err := g.LoadDialogues(dialogueDir); err != nil {
+		log.Fatalf("error: %+v", err)
+	}
+	if err := g.LoadCutscenes(cutsceneDir); err != nil {
 		log.Fatalf("error: %+v", err)
 	}
 	if err := g.LoadLevel(level); err != nil {
