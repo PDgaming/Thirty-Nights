@@ -1,0 +1,10 @@
+{
+    "id": "npc",
+    "start": "start",
+    "nodes": {
+        "start": {
+            "speaker": "NPC",
+            "text": "Hello there, stranger!"
+        }
+    }
+}

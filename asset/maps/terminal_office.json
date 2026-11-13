@@ -6915,17 +6915,35 @@
       "type": "seat",
       "layer": "structure",
       "x": 27,
-      "y": 11,
+      "y": 10,
+      "width": 1,
+      "height": 2,
+      "properties": {
+        "occupied": true,
+        "cutsceneId": ""
+      }
+    },
+    {
+      "id": "npc_4",
+      "type": "npc",
+      "layer": "floor",
+      "x": 27,
+      "y": 10,
       "width": 1,
       "height": 1,
       "properties": {
-        "occupied": false
+        "name": "NPC",
+        "dialogueId": "npc",
+        "color": "#e8a87c",
+        "facing": "left",
+        "solid": true,
+        "interactionPadding": 1,
+        "cutsceneId": ""
       }
     }
   ],
   "spawn": {
     "x": 45,
     "y": 27
-  },
-  "start_cutscene": "terminal_office_intro"
+  }
 }

@@ -5,6 +5,7 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"thirty.nights/src/game"
+	"thirty.nights/src/ui"
 	"thirty.nights/src/world"
 )
 
@@ -13,8 +14,9 @@ const (
 	mapDir      = "asset/maps"
 	dialogueDir = "asset/dialogues"
 	cutsceneDir = "asset/cutscenes"
+	fontPath    = "asset/Pixelify_Sans/static/PixelifySans-Regular.ttf"
 	level       = "terminal_office"
-	debug       = false
+	debug       = true
 )
 
 func main() {
@@ -22,6 +24,11 @@ func main() {
 	rl.InitWindow(800, 450, "Thirty Nights")
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(60)
+
+	uiFont := rl.LoadFontEx(fontPath, 48, nil, 0)
+	rl.SetTextureFilter(uiFont.Texture, rl.FilterPoint)
+	ui.SetFont(uiFont)
+	defer rl.UnloadFont(uiFont)
 
 	g := game.New(debug)
 	if err := g.LoadLevels(mapDir); err != nil {

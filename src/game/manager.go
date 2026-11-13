@@ -228,7 +228,7 @@ func (g *Game) DrawUI() {
 		}
 		anchor := g.ActiveInteractable.PromptAnchor()
 		anchor = rl.GetWorldToScreen2D(anchor, g.Cam.View)
-		rl.DrawText(prompt, int32(anchor.X), int32(anchor.Y), 20, rl.White)
+		rl.DrawTextEx(ui.Font(), prompt, rl.Vector2{X: anchor.X, Y: anchor.Y}, 20, 1, rl.White)
 	}
 }
 

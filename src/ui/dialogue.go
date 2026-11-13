@@ -10,10 +10,25 @@ var (
 	textColor    = rl.NewColor(224, 224, 214, 255)
 	panelColor   = rl.NewColor(18, 20, 26, 235)
 	borderColor  = rl.NewColor(140, 140, 140, 255)
+
+	dialogueFont     rl.Font
+	dialogueFontSet  bool
 )
 
+func SetFont(f rl.Font) {
+	dialogueFont = f
+	dialogueFontSet = true
+}
+
+func Font() rl.Font {
+	if dialogueFontSet {
+		return dialogueFont
+	}
+	return rl.GetFontDefault()
+}
+
 func Measure(text string, fontSize float32) float32 {
-	return rl.MeasureTextEx(rl.GetFontDefault(), text, fontSize, 1).X
+	return rl.MeasureTextEx(Font(), text, fontSize, 1).X
 }
 
 func toRect(r dialogue.Rect) rl.Rectangle {
@@ -26,7 +41,7 @@ func toRect(r dialogue.Rect) rl.Rectangle {
 }
 
 func DrawDialogue(snap dialogue.Snapshot, l dialogue.Layout) {
-	font := rl.GetFontDefault()
+	font := Font()
 
 	rl.DrawRectangleRec(toRect(l.Panel), panelColor)
 	rl.DrawRectangleLinesEx(toRect(l.Panel), 2, borderColor)
