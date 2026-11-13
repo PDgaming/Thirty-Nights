@@ -1,0 +1,10 @@
+{
+    "id": "bar_intro",
+    "start": "start",
+    "nodes": {
+        "start": {
+            "speaker": "Robert",
+            "text": "Let me go get a beer."
+        }
+    }
+}

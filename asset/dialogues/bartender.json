@@ -1,0 +1,20 @@
+{
+    "id": "bartender",
+    "start": "start",
+    "nodes": {
+        "start": {
+            "speaker": "Bartender",
+            "text": "What can I get for you?",
+            "next": "ask_for_drink"
+        },
+        "ask_for_drink": {
+            "speaker": "Robert",
+            "text": "A beer?",
+            "next": "bartender_response"
+        },
+        "bartender_response": {
+            "speaker": "Bartender",
+            "text": "Sure thing."
+        }
+    }
+}

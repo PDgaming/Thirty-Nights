@@ -5103,7 +5103,7 @@
       "height": 1,
       "properties": {
         "name": "drummer",
-        "dialogueId": "",
+        "dialogueId": "musician",
         "color": "#e8a87c",
         "facing": "down",
         "solid": true,
@@ -5121,7 +5121,7 @@
       "height": 1,
       "properties": {
         "name": "bassist",
-        "dialogueId": "",
+        "dialogueId": "musician",
         "color": "#e8a87c",
         "facing": "down",
         "solid": true,
@@ -5139,7 +5139,7 @@
       "height": 1,
       "properties": {
         "name": "guitarist",
-        "dialogueId": "",
+        "dialogueId": "musician",
         "color": "#e8a87c",
         "facing": "down",
         "solid": true,
@@ -5157,7 +5157,7 @@
       "height": 1,
       "properties": {
         "name": "pianist",
-        "dialogueId": "",
+        "dialogueId": "musician",
         "color": "#e8a87c",
         "facing": "down",
         "solid": true,
@@ -5166,10 +5166,10 @@
       }
     },
     {
-      "id": "exit_to_terminal",
+      "id": "exit",
       "type": "exit",
       "layer": "floor",
-      "x": 0,
+      "x": 41,
       "y": 31,
       "width": 1,
       "height": 2,
@@ -5182,8 +5182,5 @@
     "x": 39,
     "y": 31
   },
-  "start_cutscene": "bar_intro",
-  "maps": [
-    "terminal_office"
-  ]
+  "start_cutscene": "bar_intro"
 }

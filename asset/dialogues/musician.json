@@ -1,0 +1,10 @@
+{
+    "id": "musician",
+    "start": "start",
+    "nodes": {
+        "start": {
+            "speaker": "Robert",
+            "text": "They are playing music, I can't disturb them right now."
+        }
+    }
+}

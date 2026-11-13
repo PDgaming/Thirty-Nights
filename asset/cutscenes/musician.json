@@ -1,0 +1,13 @@
+{
+    "id": "musician",
+    "steps": [
+        {
+            "type": "wait",
+            "duration": 0.75
+        },
+        {
+            "type": "dialogue",
+            "id": "musician"
+        }
+    ]
+}

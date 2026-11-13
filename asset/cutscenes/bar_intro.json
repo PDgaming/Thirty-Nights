@@ -1,0 +1,13 @@
+{
+    "id": "bar_intro",
+    "steps": [
+        {
+            "type": "wait",
+            "duration": 0.75
+        },
+        {
+            "type": "dialogue",
+            "id": "bar_intro"
+        }
+    ]
+}

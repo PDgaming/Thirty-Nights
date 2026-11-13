@@ -15,7 +15,7 @@ const (
 	dialogueDir = "asset/dialogues"
 	cutsceneDir = "asset/cutscenes"
 	fontPath    = "asset/Pixelify_Sans/static/PixelifySans-Regular.ttf"
-	level       = "terminal_office"
+	level       = "bar"
 	debug       = true
 )
 
