@@ -97,7 +97,12 @@ export function uniqueTileId(map: GameMap, base = 'tile'): string {
 	return `${base}_${suffix}`;
 }
 
-export function addLayer(map: GameMap, id: string, collision: CollisionName, type: LayerType = 'tile'): LayerData | null {
+export function addLayer(
+	map: GameMap,
+	id: string,
+	collision: CollisionName,
+	type: LayerType = 'tile'
+): LayerData | null {
 	if (map.layers.some((layer) => layer.id === id)) return null;
 	const maxZ = map.layers.reduce((max, layer) => Math.max(max, layer.z_index), -1);
 	const layer: LayerData = {

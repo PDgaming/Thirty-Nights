@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { EditorState } from '#lib/editor-state.svelte';
-	import { LAYER_TYPES, type LayerData, type LayerType } from '#lib/map-model/types';
+	import { LAYER_TYPES, type LayerData } from '#lib/map-model/types';
 	import { COLLISION_TYPES, type CollisionName } from '#lib/map-model/types';
 	import Icon from '@iconify/svelte';
 	import { tick } from 'svelte';

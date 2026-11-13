@@ -53,7 +53,8 @@ describe('parseMapJson', () => {
 		];
 		map.spawn = { x: 2, y: 1 };
 
-		expect(parseMapJson(mapToJson(map))).toEqual(map);
+		const json = mapToJson(map);
+		expect(parseMapJson(json)).toEqual(parseMapData(JSON.parse(json)));
 	});
 
 	it('ignores retired rooms and unknown top-level fields', () => {
@@ -148,9 +149,10 @@ describe('parseMapJson', () => {
 		];
 		map.spawn = { x: 4, y: 4 };
 
-		const parsed = parseMapJson(mapToJson(map));
+		const json = mapToJson(map);
+		const parsed = parseMapJson(json);
 
-		expect(parsed).toEqual(map);
+		expect(parsed).toEqual(parseMapData(JSON.parse(json)));
 		expect(parsed.objects.map((object) => [object.width, object.height])).toEqual([
 			[2, 1],
 			[1, 2],

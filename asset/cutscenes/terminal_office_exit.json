@@ -1,0 +1,7 @@
+{
+  "id": "terminal_office_exit",
+  "steps": [
+    { "type": "wait", "duration": 0.35 },
+    { "type": "dialogue", "id": "receptionist" }
+  ]
+}

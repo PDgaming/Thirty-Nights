@@ -78,6 +78,9 @@ export function validateMap(map: GameMap): ValidationIssue[] {
 
 	validateSpawn(map, error);
 	validateObjects(map, error);
+	if (map.start_cutscene !== undefined && typeof map.start_cutscene !== 'string') {
+		error('start_cutscene', 'start_cutscene must be a string');
+	}
 
 	return issues;
 }
@@ -108,10 +111,7 @@ function validateTiles(tiles: TileDefs, error: (path: string, message: string) =
 		}
 		if (!isPlainObject(tile.visual)) {
 			error(`tiles.${id}.visual`, 'visual must be an object');
-		} else if (
-			!isValidHexColor(tile.visual.color) &&
-			!tile.visual.texture
-		) {
+		} else if (!isValidHexColor(tile.visual.color) && !tile.visual.texture) {
 			error(`tiles.${id}.visual.color`, 'color must be #rgb, #rrggbb, or #rrggbbaa');
 		}
 	}

@@ -70,6 +70,8 @@ export interface GameMap {
 	layers: LayerData[];
 	objects: ObjectData[];
 	spawn: Spawn;
+	/** Optional cutscene ID to play when the level is entered. */
+	start_cutscene?: string;
 }
 
 export interface CellPosition {

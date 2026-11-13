@@ -274,10 +274,12 @@ interface FootprintPx {
 /** Pixel rectangle for an object's footprint at the current zoom. */
 function footprintPx(
 	view: Viewport,
-	object: Pick<ObjectData, 'x' | 'y' | 'width' | 'height'> & { properties: Record<string, unknown> },
+	object: Pick<ObjectData, 'x' | 'y' | 'width' | 'height'> & {
+		properties?: Record<string, unknown>;
+	},
 	tilePx: number
 ): FootprintPx {
-	const interactionPadding = (object.properties['interactionPadding'] as number) ?? 0;
+	const interactionPadding = (object.properties?.['interactionPadding'] as number) ?? 0;
 	const pad = interactionPadding * tilePx;
 	return {
 		px: view.offsetX + object.x * tilePx - pad,

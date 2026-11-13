@@ -276,7 +276,7 @@ func (g *Game) LoadLevel(id string) (err error) {
 	if err := CheckDialogues(mapData, g.Dialogues); err != nil {
 		return fmt.Errorf("invalid dialogue references in level %q: %w", id, err)
 	}
-	if err := CheckCutscenes(mapData, g.Cutscenes); err != nil {
+	if err := CheckCutscenes(mapData, g.Cutscenes, g.Dialogues); err != nil {
 		return fmt.Errorf("invalid cutscene references in level %q: %w", id, err)
 	}
 

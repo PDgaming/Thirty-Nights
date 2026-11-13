@@ -143,7 +143,7 @@
 
 <!-- Button to select texture (shown when tile has no texture yet) -->
 {#if !hasTexture}
-	<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+	<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
 		<div class="rounded-sm p-2 text-sm text-[var(--text-faint)] opacity-50">
 			Click or drag an image here to use as tile texture
 		</div>

@@ -51,7 +51,7 @@
 		{/if}
 	</div>
 
-	<div class="panel-body flex-col flex">
+	<div class="panel-body flex flex-col">
 		<input
 			bind:this={fileInput}
 			type="file"

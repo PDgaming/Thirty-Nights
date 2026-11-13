@@ -6,7 +6,7 @@ import { FORMAT_VERSION } from './map-model/types';
  * Go loader understands. Editor state is never included.
  */
 export function serializeMap(map: GameMap): GameMap {
-	return {
+	const serialized: GameMap = {
 		format_version: FORMAT_VERSION,
 		id: map.id,
 		name: map.name,
@@ -44,6 +44,8 @@ export function serializeMap(map: GameMap): GameMap {
 		})),
 		spawn: { x: map.spawn.x, y: map.spawn.y }
 	};
+	if (map.start_cutscene) serialized.start_cutscene = map.start_cutscene;
+	return serialized;
 }
 
 export function mapToJson(map: GameMap): string {

@@ -54,10 +54,16 @@ No aliases are defined in the initial contract; `start_cutscene` and `cutsceneId
 - **Level start:** after a level/map is loaded and game state is initialized, if `start_cutscene` is set and valid, the cutscene runner starts and blocks normal play until completion.
 - **Post-interaction:** when the player successfully activates an interactable, the engine performs the interaction, then checks for `cutsceneId`. If present, it starts that cutscene. If the interaction already started a dialogue through existing dialogue-interactable behavior, the dialogue takes precedence for that interaction and no additional cutscene is auto-started from the same trigger (cutscenes may contain dialogue steps instead).
 - **Blocking:** while a cutscene is active, normal gameplay input/movement is blocked and interactables cannot be re-triggered. Cutscene-driven dialogue uses the existing dialogue presentation/advance input while the cutscene owns control.
-- **Validation:** unknown cutscene IDs referenced by maps or objects fail content validation/load with errors identifying the source (map or object ID/property).
+- **Validation:** unknown cutscene IDs referenced by maps or objects fail content validation/load with errors identifying the source (map or object ID/property). Dialogue IDs referenced by cutscene `dialogue` steps are also validated against the loaded dialogue catalog during level content checks.
+
+## TileMapEditor authoring
+
+- **Level start:** set **Map Settings → Start cutscene** to a cutscene ID (or clear it to remove the trigger). The field round-trips as map-level `start_cutscene`.
+- **Object trigger:** set an object's `cutsceneId` property (available on default door/npc/trigger/seat attributes, or add a string attribute named `cutsceneId`) to a cutscene ID. Empty/cleared values mean no trigger. Properties round-trip in the object's `properties` map.
 
 ## Compatibility notes
 
 - Existing dialogue JSON and runtime are unchanged; dialogue steps reference dialogue IDs only.
 - Adding `start_cutscene`/`cutsceneId` is additive and optional.
 - Future step types may be added without breaking existing cutscenes as long as new types are explicitly supported by loader/runner.
+- Current limitations: only `wait` and `dialogue` steps, no skip/branching/parallel tracks, and no in-editor cutscene preview.

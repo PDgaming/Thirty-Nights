@@ -1,4 +1,4 @@
-import type { GameMap, LayerType } from './map-model/types';
+import type { GameMap } from './map-model/types';
 import { serializeMap } from './map-serializer';
 
 /**
@@ -56,7 +56,7 @@ export const DEFAULT_MAP_SCHEMA: MapSchema = {
 					visual: {
 						type: 'object',
 						required: ['color'],
-						properties: { 
+						properties: {
 							color: { type: 'string' },
 							texture: { type: 'string' }
 						}
@@ -115,6 +115,10 @@ export const DEFAULT_MAP_SCHEMA: MapSchema = {
 				x: { type: 'integer' },
 				y: { type: 'integer' }
 			}
+		},
+		start_cutscene: {
+			type: 'string',
+			description: 'Optional cutscene ID to play when the level is entered.'
 		}
 	},
 	additionalProperties: true

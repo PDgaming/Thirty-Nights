@@ -141,7 +141,15 @@ export interface ObjectTypeDef {
 }
 
 const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [
-	{ id: 'door', color: '#9a7047', attributes: [] },
+	{
+		id: 'door',
+		color: '#9a7047',
+		attributes: [
+			{ name: 'open', type: 'boolean', default: false },
+			{ name: 'locked', type: 'boolean', default: false },
+			{ name: 'cutsceneId', type: 'string', default: '' }
+		]
+	},
 	{
 		id: 'npc',
 		color: '#2ec4b6',
@@ -151,7 +159,25 @@ const DEFAULT_OBJECT_TYPES: ObjectTypeDef[] = [
 			{ name: 'color', type: 'color', default: '#e8a87c' },
 			{ name: 'facing', type: 'string', default: 'down' },
 			{ name: 'solid', type: 'boolean', default: true },
-			{ name: 'interactionPadding', type: 'number', default: 6 }
+			{ name: 'interactionPadding', type: 'number', default: 6 },
+			{ name: 'cutsceneId', type: 'string', default: '' }
+		]
+	},
+	{
+		id: 'trigger',
+		color: '#f472b6',
+		attributes: [
+			{ name: 'dialogueId', type: 'string' },
+			{ name: 'prompt', type: 'string', default: 'E - Look' },
+			{ name: 'cutsceneId', type: 'string', default: '' }
+		]
+	},
+	{
+		id: 'seat',
+		color: '#60a5fa',
+		attributes: [
+			{ name: 'occupied', type: 'boolean', default: false },
+			{ name: 'cutsceneId', type: 'string', default: '' }
 		]
 	}
 ];
@@ -877,6 +903,16 @@ export class EditorState {
 		this.commit();
 	}
 
+	setStartCutscene(id: string): void {
+		const trimmed = id.trim();
+		if (trimmed === '') {
+			delete this.map.start_cutscene;
+		} else {
+			this.map.start_cutscene = trimmed;
+		}
+		this.commit();
+	}
+
 	newMap(options: NewMapOptions = {}): void {
 		this.map = createEmptyMap(options);
 		this.mapEpoch += 1;
@@ -1123,10 +1159,12 @@ export class EditorState {
 	}
 
 	setTileTexture(id: string, textureData: string): void {
-		if (!updateTile(this.map, id, { visual: { color: '#7a828c', texture: `${id}.png`, textureData } })) return;
+		if (
+			!updateTile(this.map, id, { visual: { color: '#7a828c', texture: `${id}.png`, textureData } })
+		)
+			return;
 		this.commit();
 	}
-
 
 	renameActiveTile(newID: string): boolean {
 		const oldID = this.activeTileId;

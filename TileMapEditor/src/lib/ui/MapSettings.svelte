@@ -8,9 +8,15 @@
 
 	let widthDraft = $state('');
 	let heightDraft = $state('');
+	let startCutsceneDraft = $state('');
 
 	function readMapDimensions(epoch: number) {
-		return untrack(() => ({ epoch, width: editor.map.width, height: editor.map.height }));
+		return untrack(() => ({
+			epoch,
+			width: editor.map.width,
+			height: editor.map.height,
+			startCutscene: editor.map.start_cutscene ?? ''
+		}));
 	}
 
 	$effect(() => {
@@ -18,6 +24,7 @@
 		const dimensions = readMapDimensions(editor.mapEpoch);
 		widthDraft = String(dimensions.width);
 		heightDraft = String(dimensions.height);
+		startCutsceneDraft = dimensions.startCutscene;
 	});
 
 	const spawnValid = $derived(
@@ -81,6 +88,11 @@
 			axis === 'x' ? value : editor.map.spawn.x,
 			axis === 'y' ? value : editor.map.spawn.y
 		);
+	}
+
+	function commitStartCutscene() {
+		editor.setStartCutscene(startCutsceneDraft);
+		startCutsceneDraft = editor.map.start_cutscene ?? '';
 	}
 
 	function enterBlur(event: KeyboardEvent) {
@@ -182,4 +194,16 @@
 			/>
 		</label>
 	</div>
+
+	<label>
+		<span class="field-label">Start cutscene</span>
+		<input
+			class="field mono"
+			placeholder="cutscene_id"
+			value={startCutsceneDraft}
+			oninput={(event) => (startCutsceneDraft = event.currentTarget.value)}
+			onchange={commitStartCutscene}
+			onkeydown={enterBlur}
+		/>
+	</label>
 </div>

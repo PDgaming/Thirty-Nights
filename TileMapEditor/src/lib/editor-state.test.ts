@@ -649,50 +649,67 @@ describe('object attributes', () => {
 
 	it('gives placed objects the declared attributes and exports them as properties', () => {
 		const editor = new EditorState();
-		expect(editor.addObjectAttribute('door', 'locked', 'boolean')).toBe(true);
+		expect(editor.addObjectAttribute('door', 'sealed', 'boolean')).toBe(true);
 
 		const object = placeDoor(editor);
 
-		expect(object.properties).toEqual({ locked: false });
+		expect(object.properties).toEqual({
+			open: false,
+			locked: false,
+			cutsceneId: '',
+			sealed: false
+		});
 		const exported = JSON.parse(mapToJson(editor.map)) as {
 			objects: { properties: Record<string, unknown> }[];
 		};
-		expect(exported.objects[0].properties).toEqual({ locked: false });
+		expect(exported.objects[0].properties).toEqual({
+			open: false,
+			locked: false,
+			cutsceneId: '',
+			sealed: false
+		});
 	});
 
 	it('updates properties on already placed objects when attributes change', () => {
 		const editor = new EditorState();
 		const object = placeDoor(editor);
 
-		editor.addObjectAttribute('door', 'locked', 'boolean');
-		editor.renameObjectAttribute('door', 'locked', 'sealed');
-		editor.setObjectAttributeType('door', 'sealed', 'string');
-		expect(object.properties).toEqual({ sealed: '' });
+		editor.addObjectAttribute('door', 'sealed', 'boolean');
+		editor.renameObjectAttribute('door', 'sealed', 'note');
+		editor.setObjectAttributeType('door', 'note', 'string');
+		expect(object.properties).toEqual({ open: false, locked: false, cutsceneId: '', note: '' });
 
-		editor.removeObjectAttribute('door', 'sealed');
-		expect(object.properties).toEqual({});
+		editor.removeObjectAttribute('door', 'note');
+		expect(object.properties).toEqual({ open: false, locked: false, cutsceneId: '' });
 	});
 
 	it('rejects duplicate attribute names', () => {
 		const editor = new EditorState();
-		expect(editor.addObjectAttribute('door', 'locked', 'boolean')).toBe(true);
-		expect(editor.addObjectAttribute('door', 'locked', 'string')).toBe(false);
+		expect(editor.addObjectAttribute('door', 'locked', 'boolean')).toBe(false);
+		expect(editor.addObjectAttribute('door', 'extra', 'boolean')).toBe(true);
+		expect(editor.addObjectAttribute('door', 'extra', 'string')).toBe(false);
 		expect(editor.objectTypes.find((type) => type.id === 'door')?.attributes).toEqual([
-			{ name: 'locked', type: 'boolean' }
+			{ name: 'open', type: 'boolean', default: false },
+			{ name: 'locked', type: 'boolean', default: false },
+			{ name: 'cutsceneId', type: 'string', default: '' },
+			{ name: 'extra', type: 'boolean' }
 		]);
 	});
 
 	it('infers attribute declarations from an imported map', () => {
 		vi.stubGlobal('window', { localStorage: memoryStorage() });
 		const editor = new EditorState();
-		editor.addObjectAttribute('door', 'locked', 'boolean');
+		editor.addObjectAttribute('door', 'sealed', 'boolean');
 		placeDoor(editor);
 		editor.flushPendingSave();
 
 		const reloaded = new EditorState();
 
 		expect(reloaded.objectTypes.find((type) => type.id === 'door')?.attributes).toEqual([
-			{ name: 'locked', type: 'boolean' }
+			{ name: 'open', type: 'boolean', default: false },
+			{ name: 'locked', type: 'boolean', default: false },
+			{ name: 'cutsceneId', type: 'string', default: '' },
+			{ name: 'sealed', type: 'boolean' }
 		]);
 	});
 });
@@ -701,13 +718,15 @@ describe('npc authoring', () => {
 	it('starts new maps with the npc palette entry and its authoring defaults', () => {
 		const editor = new EditorState();
 
-		expect(editor.objectTypes.map((type) => type.id)).toEqual(['door', 'npc']);
+		expect(editor.objectTypes.map((type) => type.id)).toEqual(['door', 'npc', 'trigger', 'seat']);
 		expect(editor.objectTypes.find((type) => type.id === 'npc')?.attributes).toEqual([
 			{ name: 'name', type: 'string' },
 			{ name: 'dialogueId', type: 'string' },
 			{ name: 'color', type: 'color', default: '#e8a87c' },
 			{ name: 'facing', type: 'string', default: 'down' },
-			{ name: 'solid', type: 'boolean', default: true }
+			{ name: 'solid', type: 'boolean', default: true },
+			{ name: 'interactionPadding', type: 'number', default: 6 },
+			{ name: 'cutsceneId', type: 'string', default: '' }
 		]);
 	});
 
@@ -723,7 +742,9 @@ describe('npc authoring', () => {
 			dialogueId: '',
 			color: '#e8a87c',
 			facing: 'down',
-			solid: true
+			solid: true,
+			interactionPadding: 6,
+			cutsceneId: ''
 		});
 
 		const exported = JSON.parse(mapToJson(editor.map)) as {
@@ -736,7 +757,9 @@ describe('npc authoring', () => {
 				dialogueId: '',
 				color: '#e8a87c',
 				facing: 'down',
-				solid: true
+				solid: true,
+				interactionPadding: 6,
+				cutsceneId: ''
 			}
 		});
 	});

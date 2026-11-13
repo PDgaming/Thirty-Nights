@@ -24,3 +24,16 @@ func (c Catalog) Get(id string) (*Cutscene, bool) {
 	cs, ok := c[id]
 	return cs, ok
 }
+
+func DialogueIDs(cs *Cutscene) []string {
+	if cs == nil {
+		return nil
+	}
+	ids := make([]string, 0, len(cs.Steps))
+	for _, step := range cs.Steps {
+		if step.Type == StepDialogue && step.ID != "" {
+			ids = append(ids, step.ID)
+		}
+	}
+	return ids
+}

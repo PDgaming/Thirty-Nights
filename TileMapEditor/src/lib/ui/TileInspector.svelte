@@ -127,10 +127,15 @@
 									editor.setTileTexture(metadata, `${metadata}.png`);
 								}}
 								title="Upload tile texture image"
-							>
+							/>
 							{#if tile.visual.texture}
 								<span class="texture-preview">
-									<img src={tile.visual.textureData || `/asset/tiles/${tile.visual.texture}`} alt="tile texture" class="texture-img" onerror={(e) => (e.currentTarget as HTMLImageElement).style.display = 'none'} />
+									<img
+										src={tile.visual.textureData || `/asset/tiles/${tile.visual.texture}`}
+										alt="tile texture"
+										class="texture-img"
+										onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
+									/>
 								</span>
 							{/if}
 						</div>

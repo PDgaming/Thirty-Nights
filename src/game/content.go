@@ -31,10 +31,23 @@ func CheckDialogues(m *world.MapData, catalog dialogue.Catalog) error {
 	return nil
 }
 
-func CheckCutscenes(m *world.MapData, catalog cutscene.Catalog) error {
+func CheckCutscenes(m *world.MapData, cutscenes cutscene.Catalog, dialogues dialogue.Catalog) error {
+	validateDialogueRefs := func(source string, cs *cutscene.Cutscene) error {
+		for i, id := range cutscene.DialogueIDs(cs) {
+			if _, ok := dialogues[id]; !ok {
+				return fmt.Errorf("%s: cutscene %q step %d references unknown dialogue %q", source, cs.ID, i, id)
+			}
+		}
+		return nil
+	}
+
 	if m.StartCutscene != "" {
-		if _, ok := catalog[m.StartCutscene]; !ok {
+		cs, ok := cutscenes[m.StartCutscene]
+		if !ok {
 			return fmt.Errorf("map %q requests unknown start_cutscene %q", m.ID, m.StartCutscene)
+		}
+		if err := validateDialogueRefs(fmt.Sprintf("map %q start_cutscene", m.ID), cs); err != nil {
+			return err
 		}
 	}
 
@@ -43,16 +56,20 @@ func CheckCutscenes(m *world.MapData, catalog cutscene.Catalog) error {
 		if !ok {
 			continue
 		}
-		cs, ok := obj.(world.CutsceneInteractable)
+		trigger, ok := obj.(world.CutsceneInteractable)
 		if !ok {
 			continue
 		}
-		id := cs.CutsceneID()
+		id := trigger.CutsceneID()
 		if id == "" {
 			continue
 		}
-		if _, ok := catalog[id]; !ok {
+		cs, ok := cutscenes[id]
+		if !ok {
 			return fmt.Errorf("object %q requests unknown cutscene %q", object.ID, id)
+		}
+		if err := validateDialogueRefs(fmt.Sprintf("object %q cutsceneId", object.ID), cs); err != nil {
+			return err
 		}
 	}
 	return nil

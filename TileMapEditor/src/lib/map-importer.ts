@@ -89,8 +89,12 @@ export function parseMapData(raw: unknown): GameMap {
 		...parseObjectList(raw.npcs, 'npcs', 'npc')
 	];
 	const spawn = parseSpawn(raw.spawn);
+	const startCutscene =
+		typeof raw.start_cutscene === 'string' && raw.start_cutscene !== ''
+			? raw.start_cutscene
+			: undefined;
 
-	return {
+	const map: GameMap = {
 		format_version: formatVersion,
 		id: readString(raw.id, 'id'),
 		name: readString(raw.name, 'name'),
@@ -102,6 +106,8 @@ export function parseMapData(raw: unknown): GameMap {
 		objects,
 		spawn
 	};
+	if (startCutscene) map.start_cutscene = startCutscene;
+	return map;
 }
 
 function parseTiles(value: unknown): TileDefs {
@@ -117,8 +123,8 @@ function parseTiles(value: unknown): TileDefs {
 
 		const tile: TileDef = {
 			solid: rawTile.solid,
-			visual: { 
-				color: readString(rawTile.visual.color, `${path}.visual.color`), 
+			visual: {
+				color: readString(rawTile.visual.color, `${path}.visual.color`),
 				texture: String(rawTile.visual.texture || ''),
 				textureData: ''
 			}

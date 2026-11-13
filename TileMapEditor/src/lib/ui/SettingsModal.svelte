@@ -140,7 +140,7 @@
 				/>
 			</label>
 			<p class="text-[10.5px] leading-4" style="color: var(--text-faint)">
-				Edits are written to browser storage at most once per delay, from{' '}
+				Edits are written to browser storage at most once per delay, from
 				{MIN_AUTOSAVE_DELAY_MS / 1000} to {MAX_AUTOSAVE_DELAY_MS / 1000} seconds. Pending changes are
 				always flushed when the page is hidden or closed, and Ctrl+S saves immediately.
 			</p>
@@ -165,7 +165,11 @@
 			</div>
 
 			<div class="code-editor">
-				<pre bind:this={codePreview} aria-hidden="true"><code>{@html highlighted}{'\n'}</code></pre>
+				<!-- eslint-disable svelte/no-at-html-tags -->
+				<pre bind:this={codePreview} aria-hidden="true"><code
+						>{@html highlighted}
+</code></pre>
+				<!-- eslint-enable svelte/no-at-html-tags -->
 				<textarea
 					bind:this={codeInput}
 					bind:value={schemaText}

@@ -52,7 +52,10 @@ describe('serializeMap', () => {
 				['', '', '']
 			]
 		});
-		expect(serialized.tiles.door).toEqual({ solid: true, visual: { color: '#9A7047' } });
+		expect(serialized.tiles.door).toEqual({
+			solid: true,
+			visual: { color: '#9A7047', texture: 'door.png' }
+		});
 		expect(serialized.objects[0]).toEqual({
 			id: 'door-1',
 			type: 'door',

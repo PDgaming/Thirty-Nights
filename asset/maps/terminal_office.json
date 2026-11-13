@@ -6926,5 +6926,6 @@
   "spawn": {
     "x": 45,
     "y": 27
-  }
+  },
+  "start_cutscene": "terminal_office_intro"
 }
