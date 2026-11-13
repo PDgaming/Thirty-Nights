@@ -1,0 +1,20 @@
+{
+  "id": "terminal_office_intro",
+  "start": "arrival",
+  "nodes": {
+    "arrival": {
+      "speaker": "Robert",
+      "text": "I finally made it to the terminal. The trip here felt longer than it should have.",
+      "next": "check_in"
+    },
+    "check_in": {
+      "speaker": "Robert",
+      "text": "I need to check in before I can go any further. The reception desk should be around here somewhere.",
+      "next": "move"
+    },
+    "move": {
+      "speaker": "Robert",
+      "text": "Better not keep them waiting. I should find someone and get this sorted."
+    }
+  }
+}
