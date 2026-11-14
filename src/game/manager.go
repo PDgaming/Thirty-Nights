@@ -15,10 +15,7 @@ import (
 )
 
 func New(debug bool) *Game {
-	g := &Game{
-		Debug: debug,
-	}
-	return g
+	return &Game{Debug: debug}
 }
 
 func (g *Game) Update(dt float32) {
@@ -30,10 +27,7 @@ func (g *Game) Step(dt float32, in Input) {
 		g.Cam.UpdateViewport()
 	}
 
-	// Drive fade/load state machine every tick.
-	if g.TransitionActive() || g.transitionPhase == TransitionLoad {
-		g.updateTransition(dt)
-	}
+	g.updateTransition(dt)
 
 	switch g.mode {
 	case ModePlaying:
@@ -49,17 +43,7 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 	if g.TransitionActive() || g.transitionPhase == TransitionLoad {
 		return
 	}
-
-	if g.pendingCutscene != "" {
-		id := g.pendingCutscene
-		g.pendingCutscene = ""
-		g.startCutscene(id)
-		return
-	}
-	if g.pendingDialogue != "" {
-		id := g.pendingDialogue
-		g.pendingDialogue = ""
-		g.startDialogue(id)
+	if g.consumePendingRequests() {
 		return
 	}
 
@@ -78,7 +62,7 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 	interaction := world.ResolveInteraction(g.Map, g.Player.Rect(), g.Player.Center(), g.Player.Facing)
 	g.ActiveInteractable = interaction.Target
 
-	if interaction.Target != nil && rl.IsKeyPressed(rl.KeyE) {
+	if interaction.Target != nil && in.Interact {
 		outcome := world.ActivateInteraction(interaction.Target, g.Player.Rect(), g.Player.Sitting)
 		switch outcome.Kind {
 		case world.ActivationDialogue:
@@ -94,14 +78,35 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 		}
 	}
 
+	g.updateCamera(dt)
+}
+
+func (g *Game) consumePendingRequests() bool {
+	if g.pendingCutscene != "" {
+		id := g.pendingCutscene
+		g.pendingCutscene = ""
+		g.startCutscene(id)
+		return true
+	}
+	if g.pendingDialogue != "" {
+		id := g.pendingDialogue
+		g.pendingDialogue = ""
+		g.startDialogue(id)
+		return true
+	}
+	return false
+}
+
+func (g *Game) updateCamera(dt float32) {
+	if g.Player == nil || g.Cam == nil || g.Map == nil {
+		return
+	}
 	playerCenter := rl.Vector2{
 		X: g.Player.Position.X + g.Player.Size.X/2,
 		Y: g.Player.Position.Y + g.Player.Size.Y/2,
 	}
 	g.Cam.Follow(playerCenter, dt)
-	mapWidthPixels := g.Map.Width * g.Map.TileSize
-	mapHeightPixels := g.Map.Height * g.Map.TileSize
-	g.Cam.ClampToBounds(mapWidthPixels, mapHeightPixels)
+	g.Cam.ClampToBounds(g.Map.Width*g.Map.TileSize, g.Map.Height*g.Map.TileSize)
 }
 
 func (g *Game) checkExitTransitions() {
@@ -127,11 +132,9 @@ func (g *Game) updateDialogue(dt float32, in Input) {
 		return
 	}
 	g.Dialogue.Update(dt)
-
 	if in.Interact {
 		g.Dialogue.Advance()
 	}
-
 	if g.Dialogue.Snapshot().Finished {
 		g.finishDialogue()
 	}
@@ -160,7 +163,6 @@ func (g *Game) startDialogue(id string) {
 		log.Printf("dialogue: unknown id %q", id)
 		return
 	}
-
 	g.Dialogue = dialogue.NewSession(def)
 	g.dialogueReturn = g.mode
 	g.mode = ModeDialogue
@@ -173,7 +175,6 @@ func (g *Game) startCutscene(id string) {
 		log.Printf("cutscene: unknown id %q", id)
 		return
 	}
-
 	g.Cutscene = cutscene.NewSession(def)
 	g.mode = ModeCutscene
 	g.ActiveInteractable = nil
@@ -189,28 +190,30 @@ func (g *Game) finishCutscene() {
 	g.Cutscene = nil
 	g.mode = ModePlaying
 	g.ActiveInteractable = nil
-	// Let updatePlaying process any queued triggers on the next tick.
 }
 
 func (g *Game) Draw() {
+	if g.Map == nil {
+		return
+	}
 	world.DrawMap(g.Map, g.Debug)
 	for _, obj := range g.Map.ObjectsByID {
 		obj.Draw(g.Debug)
 	}
-
-	g.Player.Draw(g.Debug)
+	if g.Player != nil {
+		g.Player.Draw(g.Debug)
+	}
 
 	if g.Debug {
 		for _, obj := range g.Map.ObjectsByID {
-			obj, ok := obj.(world.Interactable)
+			interactable, ok := obj.(world.Interactable)
 			if !ok {
 				continue
 			}
-
-			if obj == g.ActiveInteractable {
-				rl.DrawRectangleLinesEx(obj.InteractionRect(), 2, rl.Green)
+			if interactable == g.ActiveInteractable {
+				rl.DrawRectangleLinesEx(interactable.InteractionRect(), 2, rl.Green)
 			} else {
-				rl.DrawRectangleLinesEx(obj.InteractionRect(), 2, rl.Blue)
+				rl.DrawRectangleLinesEx(interactable.InteractionRect(), 2, rl.Blue)
 			}
 		}
 	}
@@ -249,10 +252,8 @@ func (g *Game) DrawUI() {
 func (g *Game) drawDialogueSession(s *dialogue.Session) {
 	snap := s.Snapshot()
 	l := dialogue.Compute(float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()), ui.Measure, snap.Speaker, snap.Text)
-
 	s.SetPages(l.Ranges())
 	snap = s.Snapshot()
-
 	ui.DrawDialogue(snap, l)
 }
 
@@ -271,7 +272,7 @@ func (g *Game) LoadLevels(dir string) error {
 	return nil
 }
 
-func (g *Game) LoadLevel(id string) (err error) {
+func (g *Game) LoadLevel(id string) error {
 	if g.Levels == nil {
 		return fmt.Errorf("no levels loaded")
 	}
@@ -283,31 +284,55 @@ func (g *Game) LoadLevel(id string) (err error) {
 	if !ok {
 		return fmt.Errorf("unknown level %q", id)
 	}
+	if err := g.validateAndPrepareLevel(id, mapData); err != nil {
+		return err
+	}
+	g.activateLevel(id, mapData)
+	return nil
+}
 
-	// check for valid spawn point
+func (g *Game) validateAndPrepareLevel(id string, mapData *world.MapData) error {
 	if mapData.Spawn.X < 0 || mapData.Spawn.X > mapData.Width {
 		return fmt.Errorf("invalid X spawn point in level %q: %+v", id, mapData.Spawn)
 	}
 	if mapData.Spawn.Y < 0 || mapData.Spawn.Y > mapData.Height {
 		return fmt.Errorf("invalid Y spawn point in level %q: %+v", id, mapData.Spawn)
 	}
-
-	// check for valid dialogues and cutscenes
 	if err := CheckDialogues(mapData, g.Dialogues); err != nil {
 		return fmt.Errorf("invalid dialogue references in level %q: %w", id, err)
 	}
 	if err := CheckCutscenes(mapData, g.Cutscenes, g.Dialogues); err != nil {
 		return fmt.Errorf("invalid cutscene references in level %q: %w", id, err)
 	}
-
 	if err := mapData.LoadTileTextures(); err != nil {
 		return fmt.Errorf("world: failed to load tile textures in %q: %w", id, err)
 	}
 	if err := mapData.LoadTextures(); err != nil {
 		return fmt.Errorf("world: failed to load textures in %q: %w", id, err)
 	}
+	return nil
+}
 
-	// Assign loaded textures to objects that use tile textures.
+func (g *Game) activateLevel(id string, mapData *world.MapData) {
+	bindLevelObjectTextures(mapData)
+
+	g.currentLevel = id
+	g.Map = mapData
+	g.Player = player.New(float32(g.Map.Spawn.X*g.Map.TileSize), float32(g.Map.Spawn.Y*g.Map.TileSize))
+	g.Cam = camera.New()
+	g.Cam.View.Target = rl.Vector2{
+		X: float32(g.Map.Width*g.Map.TileSize) / 2,
+		Y: float32(g.Map.Height*g.Map.TileSize) / 2,
+	}
+
+	g.resetRuntimeState()
+
+	if !g.TransitionActive() && mapData.StartCutscene != "" {
+		g.startCutscene(mapData.StartCutscene)
+	}
+}
+
+func bindLevelObjectTextures(mapData *world.MapData) {
 	for _, obj := range mapData.ObjectsByID {
 		if door, ok := obj.(*objects.Door); ok {
 			if tex, ok := mapData.TileTextures["door"]; ok {
@@ -326,29 +351,15 @@ func (g *Game) LoadLevel(id string) (err error) {
 			}
 		}
 	}
+}
 
-	g.currentLevel = id
-	g.Map = mapData
-	g.Player = player.New(float32(g.Map.Spawn.X*g.Map.TileSize), float32(g.Map.Spawn.Y*g.Map.TileSize))
+func (g *Game) resetRuntimeState() {
 	g.ActiveInteractable = nil
-	g.Cam = camera.New()
-	g.Cam.View.Target = rl.Vector2{
-		X: float32(g.Map.Width*g.Map.TileSize) / 2,
-		Y: float32(g.Map.Height*g.Map.TileSize) / 2,
-	}
-
-	// Reset transient runtime state for the new level.
 	g.Dialogue = nil
 	g.Cutscene = nil
 	g.pendingDialogue = ""
 	g.pendingCutscene = ""
 	g.mode = ModePlaying
-
-	// During transitions start destination cutscene after fade-in.
-	if !g.TransitionActive() && mapData.StartCutscene != "" {
-		g.startCutscene(mapData.StartCutscene)
-	}
-	return nil
 }
 
 func (g *Game) LoadDialogues(dir string) error {
@@ -381,7 +392,6 @@ func (g *Game) RequestCutscene(id string) {
 	g.pendingCutscene = id
 }
 
-// Helper Functions
 func (m Mode) String() string {
 	switch m {
 	case ModePlaying:

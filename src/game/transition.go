@@ -46,32 +46,34 @@ func (g *Game) updateTransition(dt float32) {
 			g.transitionPhase = TransitionLoad
 		}
 	case TransitionLoad:
-		target := g.transitionTarget
-		g.transitionTarget = ""
-		// Load while fully faded to black.
-		if err := g.LoadLevel(target); err != nil {
-			// Fail visible: abort transition but keep screen black briefly impossible;
-			// log and drop to fade-in from current state to avoid trapping player.
-			// (startup validation should prevent this path for known content)
-			// Keep behavior simple.
-			//nolint:errcheck
-			_ = err
-		}
-		g.transitionPhase = TransitionFadeIn
-		g.transitionElapsed = 0
-		g.transitionAlpha = 1
+		g.performTransitionLoad()
 	case TransitionFadeIn:
 		g.transitionElapsed += dt
 		g.transitionAlpha = 1 - clamp01(g.transitionElapsed/transitionFadeInDuration)
 		if g.transitionAlpha <= 0 {
-			g.transitionAlpha = 0
-			g.transitionPhase = TransitionNone
-			g.transitionElapsed = 0
-			// Start destination cutscene after fade-in so player sees the level.
-			if g.Map != nil && g.Map.StartCutscene != "" {
-				g.startCutscene(g.Map.StartCutscene)
-			}
+			g.completeTransition()
 		}
+	}
+}
+
+func (g *Game) performTransitionLoad() {
+	target := g.transitionTarget
+	g.transitionTarget = ""
+	// Load while fully faded to black. Preserve current behavior: ignore load
+	// errors here and proceed to fade-in to avoid trapping the player.
+	// Startup/content validation should prevent this path for known content.
+	_ = g.LoadLevel(target)
+	g.transitionPhase = TransitionFadeIn
+	g.transitionElapsed = 0
+	g.transitionAlpha = 1
+}
+
+func (g *Game) completeTransition() {
+	g.transitionAlpha = 0
+	g.transitionPhase = TransitionNone
+	g.transitionElapsed = 0
+	if g.Map != nil && g.Map.StartCutscene != "" {
+		g.startCutscene(g.Map.StartCutscene)
 	}
 }
 
