@@ -107,7 +107,7 @@ type MapData struct {
 
 	assetTextures map[string]rl.Texture2D
 	TileTextures  map[string]rl.Texture2D `json:"-"`
-	Textures      map[string]string      `json:"textures,omitempty"`
+	Textures      map[string]string       `json:"textures,omitempty"`
 	TexturesByID  map[string]rl.Texture2D `json:"-"`
 
 	Objects     []ObjectData          `json:"objects"`

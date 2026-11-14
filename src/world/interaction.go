@@ -58,18 +58,18 @@ func (m *MapData) FindInteractable(playerRect rl.Rectangle, playerCenter rl.Vect
 			continue
 		}
 
-targetRect := target.InteractionRect()
-targetPoint := closestPointOnRect(targetRect, playerCenter)
-toTarget := rl.Vector2{
-	X: targetPoint.X - playerCenter.X,
-	Y: targetPoint.Y - playerCenter.Y,
-}
+		targetRect := target.InteractionRect()
+		targetPoint := closestPointOnRect(targetRect, playerCenter)
+		toTarget := rl.Vector2{
+			X: targetPoint.X - playerCenter.X,
+			Y: targetPoint.Y - playerCenter.Y,
+		}
 
-_, isNPC := object.(*npc.NPC)
-if isNPC && toTarget.LengthSqr() == 0 {
-	center := rl.Vector2{X: targetRect.X + targetRect.Width/2, Y: targetRect.Y + targetRect.Height/2}
-	toTarget = rl.Vector2{X: center.X - playerCenter.X, Y: center.Y - playerCenter.Y}
-}
+		_, isNPC := object.(*npc.NPC)
+		if isNPC && toTarget.LengthSqr() == 0 {
+			center := rl.Vector2{X: targetRect.X + targetRect.Width/2, Y: targetRect.Y + targetRect.Height/2}
+			toTarget = rl.Vector2{X: center.X - playerCenter.X, Y: center.Y - playerCenter.Y}
+		}
 
 		overlapping := pointInsideRect(targetRect, playerCenter)
 		bodyOverlap := !object.Solid() &&

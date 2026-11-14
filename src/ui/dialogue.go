@@ -11,8 +11,8 @@ var (
 	panelColor   = rl.NewColor(18, 20, 26, 235)
 	borderColor  = rl.NewColor(140, 140, 140, 255)
 
-	dialogueFont     rl.Font
-	dialogueFontSet  bool
+	dialogueFont    rl.Font
+	dialogueFontSet bool
 )
 
 func SetFont(f rl.Font) {

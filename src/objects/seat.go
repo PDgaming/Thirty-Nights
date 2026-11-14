@@ -92,3 +92,10 @@ func (s *Seat) InteractionRect() rl.Rectangle {
 func (s *Seat) Solid() bool {
 	return true
 }
+func (s *Seat) IsOccupied() bool {
+	return s.Occupied
+}
+
+func (s *Seat) SeatBounds() rl.Rectangle {
+	return s.Bounds
+}

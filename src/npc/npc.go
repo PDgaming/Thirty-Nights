@@ -170,7 +170,6 @@ func (n *NPC) DialogueID() string {
 	return n.dialogueID
 }
 
-
 func cutsceneIDFromProperties(properties map[string]any) string {
 	raw, ok := properties["cutsceneId"]
 	if !ok || raw == nil {

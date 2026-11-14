@@ -75,39 +75,22 @@ func (g *Game) updatePlaying(dt float32, in Input) {
 		return
 	}
 
-	g.ActiveInteractable = g.Map.FindInteractable(g.Player.Rect(), g.Player.Center(), g.Player.Facing)
+	interaction := world.ResolveInteraction(g.Map, g.Player.Rect(), g.Player.Center(), g.Player.Facing)
+	g.ActiveInteractable = interaction.Target
 
-	if g.ActiveInteractable != nil && rl.IsKeyPressed(rl.KeyE) {
-		canActivate := true
-
-		if aware, ok := g.ActiveInteractable.(world.PlayerAwareInteractable); ok {
-			canActivate = aware.CanActivate(g.Player.Rect())
-		}
-		if canActivate {
-			g.ActiveInteractable.Interact()
-
-			// Existing dialogue interactables take precedence for this interaction.
-			if talker, ok := g.ActiveInteractable.(world.DialogueInteractable); ok {
-				if id := talker.DialogueID(); id != "" {
-					g.RequestDialogue(id)
-					return
-				}
-			}
-			if seat, ok := g.ActiveInteractable.(*objects.Seat); ok {
-				switch {
-				case seat.Occupied && !g.Player.Sitting:
-					g.Player.Sit(seat.Bounds)
-				case !seat.Occupied && g.Player.Sitting:
-					g.Player.Stand()
-				}
-			}
-			// Post-interaction cutscene trigger runs after interaction side effects.
-			if cs, ok := g.ActiveInteractable.(world.CutsceneInteractable); ok {
-				if id := cs.CutsceneID(); id != "" {
-					g.RequestCutscene(id)
-					return
-				}
-			}
+	if interaction.Target != nil && rl.IsKeyPressed(rl.KeyE) {
+		outcome := world.ActivateInteraction(interaction.Target, g.Player.Rect(), g.Player.Sitting)
+		switch outcome.Kind {
+		case world.ActivationDialogue:
+			g.RequestDialogue(outcome.DialogueID)
+			return
+		case world.ActivationSit:
+			g.Player.Sit(outcome.SeatBounds)
+		case world.ActivationStand:
+			g.Player.Stand()
+		case world.ActivationCutscene:
+			g.RequestCutscene(outcome.CutsceneID)
+			return
 		}
 	}
 
@@ -249,17 +232,17 @@ func (g *Game) DrawUI() {
 		}
 	}
 
-	if g.ActiveInteractable != nil {
-		prompt := g.ActiveInteractable.Prompt()
-		if aware, ok := g.ActiveInteractable.(world.PlayerAwareInteractable); ok {
-			prompt = aware.PromptFor(g.Player.Rect())
+	if g.ActiveInteractable != nil && g.Player != nil && g.Map != nil {
+		interaction := world.ResolveInteraction(g.Map, g.Player.Rect(), g.Player.Center(), g.Player.Facing)
+		if interaction.Target != g.ActiveInteractable {
+			return
 		}
-		if prompt == "" {
+		if interaction.Prompt == "" {
 			return
 		}
 		anchor := g.ActiveInteractable.PromptAnchor()
 		anchor = rl.GetWorldToScreen2D(anchor, g.Cam.View)
-		rl.DrawTextEx(ui.Font(), prompt, rl.Vector2{X: anchor.X, Y: anchor.Y}, 20, 1, rl.White)
+		rl.DrawTextEx(ui.Font(), interaction.Prompt, rl.Vector2{X: anchor.X, Y: anchor.Y}, 20, 1, rl.White)
 	}
 }
 
